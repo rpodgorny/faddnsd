@@ -13,7 +13,7 @@ import getopt
 class Config:
 	def __init__(self):
 		self.domain = None
-		self.host = socket.gethostname()
+		self.host = socket.gethostname().lower()
 		self.interval = 600
 		self.url_prefix = 'http://wiki.asterix.cz/ip.php'
 	#enddef
@@ -22,9 +22,9 @@ class Config:
 		opts, args = getopt.getopt(argv, 'd:h:i:u:', ('domain=', 'host=', 'interval=', 'url-prefix='))
 		for o,a in opts:
 			if o in ('-d', '--domain'):
-				self.domain = a
+				self.domain = a.lower()
 			elif o in ('-h', '--host'):
-				self.host = a
+				self.host = a.lower()
 			elif o in ('-i', '--interval'):
 				self.interval = int(a)
 			elif o in ('-u', '--url-prefix'):
