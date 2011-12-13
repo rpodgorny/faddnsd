@@ -46,6 +46,8 @@ def get_addrs_windows():
 	lines = subprocess.check_output('netsh interface ipv6 show address')
 
 	for word in lines.split():
+		word = word.lower()
+
 		if not ':' in word: continue
 		if not word.startswith('200'): continue
 
@@ -65,6 +67,7 @@ def get_addrs_linux():
 		if not line.startswith('inet'): continue
 
 		addr_type, addr, _ = line.split(' ', 2)
+		addr = addr.lower()
 
 		if addr_type == 'inet':
 			addr_type = 'a'
