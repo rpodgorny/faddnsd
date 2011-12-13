@@ -9,7 +9,6 @@ import urllib
 import time
 import getopt
 
-
 class Config:
 	def __init__(self):
 		self.domain = None
@@ -122,7 +121,7 @@ def main():
 
 		url = cfg.url_prefix
 		url += '?' + urllib.urlencode({'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
-		print url
+		#print url
 
 		u = urllib.urlopen(url)
 		#for i in u: print i.strip()
