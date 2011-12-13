@@ -6,22 +6,58 @@ import sys
 import socket
 import subprocess
 import urllib
+import time
+import getopt
 
-host = socket.gethostname()
-domain = 'podgorny.cz'
+
+class Config:
+	def __init__(self):
+		self.domain = None
+		self.host = socket.gethostname()
+		self.interval = 600
+		self.url_prefix = 'http://wiki.asterix.cz/ip.php'
+	#enddef
+
+	def getopt(self, argv):
+		opts, args = getopt.getopt(argv, 'd:h:i:u:', ('domain=', 'host=', 'interval=', 'url-prefix='))
+		for o,a in opts:
+			if o in ('-d', '--domain'):
+				self.domain = a
+			elif o in ('-h', '--host'):
+				self.host = a
+			elif o in ('-i', '--interval'):
+				self.interval = int(a)
+			elif o in ('-u', '--url-prefix'):
+				self.url_prefix = a
+			#endif
+		#endfor
+	#enddef
+
+	def check(self):
+		if not self.domain: return 'domain not specified!'
+	#enddef
+#endclass
+
+cfg = Config()
 
 def get_addrs_windows():
+	ret = []
+
 	lines = subprocess.check_output('netsh interface ipv6 show address')
 
 	for word in lines.split():
 		if not ':' in word: continue
 		if not word.startswith('200'): continue
 
-		yield 'aaaa', word
+		ret.append(('aaaa', word))
 	#endfor
+	
+	return ret
 #enddef
 
 def get_addrs_linux():
+	ret = []
+
 	lines = subprocess.check_output('ip addr', shell=True).split('\n')
 
 	for line in lines:
@@ -48,33 +84,55 @@ def get_addrs_linux():
 		if addr.startswith('::1'): continue
 		if addr.startswith('fe80:'): continue
 
-		yield addr_type, addr
+		ret.append((addr_type, addr))
 	#endfor
+	
+	return ret
 #enddef
 
 def main():
+	cfg.getopt(sys.argv[1:])
+	err = cfg.check()
+	if err:
+		print err
+		return
+	#endif
+
 	if sys.platform == 'win32':
-		addrs = get_addrs_windows()
+		print 'detected win32'
+		get_addrs = get_addrs_windows
 	elif sys.platform == 'linux2':
-		addrs = get_addrs_linux()
+		print 'detected linux2'
+		get_addrs = get_addrs_linux
 	else:
 		print 'unknown platform!'
 		return
 	#endif
 
-	tmp = []
-	for af,a in addrs: tmp.append('%s=%s' % (af, a))
-	addrs = tmp
+	while 1:
+		addrs = get_addrs()
+		for af,a in addrs: print af,a
 
-	addrs = ','.join(addrs)
+		tmp = []
+		for af,a in addrs: tmp.append('%s=%s' % (af, a))
+		addrs = ','.join(tmp)
 
-	url = 'http://wiki.asterix.cz/ip.php'
-	url += '?' + urllib.urlencode({'host': host, 'domain': domain, 'addrs': addrs})
-	print url
+		url = cfg.url_prefix
+		url += '?' + urllib.urlencode({'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
+		print url
 
-	u = urllib.urlopen(url)
+		u = urllib.urlopen(url)
+		#for i in u: print i.strip()
+		if 'OK' in ''.join(u):
+			print 'OK'
+		else:
+			print 'NOT OK'
+			for i in u: print i.strip()
+		#endif
 
-	for i in u: print i.strip()
+		print 'sleeping for %ss' % cfg.interval
+		time.sleep(cfg.interval)
+	#endwhile
 #enddef
 
 if __name__ == '__main__': main()
