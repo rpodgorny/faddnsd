@@ -1,9 +1,11 @@
 from distutils.core import setup
 import py2exe
 
+from nsupdate import __version__ as version
+
 setup(
 	console = ['nsupdate.py', ],
-	#version = __import__(srcs[0].split('.')[0]).__version__,
+	version = version,
 	zipfile = None,
 	options = {'py2exe': {'bundle_files': 1}}
 )
