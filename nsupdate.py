@@ -110,10 +110,29 @@ def main():
 		print 'unknown platform!'
 		return
 	#endif
+	
+	addr_life = {}
 
 	while 1:
+		t = time.time()
+
 		addrs = get_addrs()
 		for af,a in addrs: print af,a
+		
+		for af,a in addrs:
+			if not a in addr_life: addr_life[a] = t
+		#endfor
+		
+		for k,v in addr_life.items():
+			alive = 'DEAD'
+			for af,a in addrs:
+				if a != k: continue
+				alive = 'ALIVE'
+				break
+			#endfor
+
+			print '%s -> %ss -> %s' % (k, t-v, alive)
+		#endfor
 
 		tmp = []
 		for af,a in addrs: tmp.append('%s=%s' % (af, a))
