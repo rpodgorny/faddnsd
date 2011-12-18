@@ -141,8 +141,8 @@ def main():
 		addrs = ','.join(tmp)
 
 		url = cfg.url_prefix
-		url += '?' + urllib.urlencode({'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
-		#print url
+		url += '?' + urllib.urlencode({'version': __version__, 'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
+		print url
 
 		u = urllib.urlopen(url)
 		#for i in u: print i.strip()
