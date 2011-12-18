@@ -140,7 +140,7 @@ def main():
 
 		url = cfg.url_prefix
 		url += '?' + urllib.urlencode({'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
-		#print url
+		print url
 
 		u = urllib.urlopen(url)
 		#for i in u: print i.strip()
