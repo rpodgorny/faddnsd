@@ -139,7 +139,7 @@ def main():
 	zone_file.close()
 	out_file.close()
 
-	if not check_zone(zone, zone_fn):
+	if not check_zone(zone, out_fn):
 		print 'zone check error!'
 		return
 	#endif
