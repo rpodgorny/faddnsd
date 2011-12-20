@@ -93,6 +93,8 @@ def get_addrs_linux():
 #enddef
 
 def main():
+	print 'nsupdate v%s' % __version__
+
 	cfg.getopt(sys.argv[1:])
 	err = cfg.check()
 	if err:
@@ -110,18 +112,37 @@ def main():
 		print 'unknown platform!'
 		return
 	#endif
+	
+	addr_life = {}
 
 	while 1:
+		t = time.time()
+
 		addrs = get_addrs()
 		for af,a in addrs: print af,a
+		
+		for af,a in addrs:
+			if not a in addr_life: addr_life[a] = t
+		#endfor
+		
+		for k,v in addr_life.items():
+			alive = 'DEAD'
+			for af,a in addrs:
+				if a != k: continue
+				alive = 'ALIVE'
+				break
+			#endfor
+
+			print '%s -> %ss -> %s' % (k, t-v, alive)
+		#endfor
 
 		tmp = []
 		for af,a in addrs: tmp.append('%s=%s' % (af, a))
 		addrs = ','.join(tmp)
 
 		url = cfg.url_prefix
-		url += '?' + urllib.urlencode({'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
-		#print url
+		url += '?' + urllib.urlencode({'version': __version__, 'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
+		print url
 
 		u = urllib.urlopen(url)
 		#for i in u: print i.strip()
