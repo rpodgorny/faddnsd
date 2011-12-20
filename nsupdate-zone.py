@@ -32,7 +32,7 @@ class Change:
 		self.fn = fn
 
 		f = open(fn, 'r')
-		self.date, self.time, self.remote_addr = f.readline().split()
+		self.version, self.date, self.time, self.remote_addr = f.readline().split()
 		self.host, self.domain = f.readline().split()
 
 		self.addrs = []
@@ -54,15 +54,20 @@ def main():
 
 	out_fn = '/tmp/tmp.zone' # TODO: rename variable and make the value random
 
-	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
-	subprocess.call(cmd, shell=True)
-
 	changes = []
 	for i in glob.glob(changes_dir+'/*'):
 		c = Change()
 		c.read_from_file(i)
 		changes.append(c)
 	#endfor
+
+	if not changes:
+		print 'no change files found, doing nothing'
+		return
+	#endif
+	
+	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
+	subprocess.call(cmd, shell=True)
 
 	zone_file = open(zone_fn, 'r')
 	out_file = open(out_fn, 'w')
@@ -108,14 +113,24 @@ def main():
 
 		if change.processed: continue
 
-		m_host, m_ttl, m_typ, m_addr = m.groups()
+		print 'updating %s' % change.host
+
+		#m_host, m_ttl, m_typ, m_addr = m.groups()
 		#print m
 		#print m.groups()
+
 		for af,a in change.addrs:
 			host = change.host.lower()
 			ttl = change.ttl.upper()
 			af = af.upper()
+
+			if af not in ('A', 'AAAA'):
+				print 'unsupported record type %s' % af
+				continue
+			#endif
+
 			out_file.write('%s\t%s\t%s\t%s ; %s %s\n' % (host, ttl, af, a, change.date, change.time))
+			print '%s %s' % (af, a)
 		#endfor
 
 		change.processed = True
