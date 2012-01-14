@@ -92,6 +92,35 @@ def get_addrs_linux():
 	return ret
 #enddef
 
+# TODO: uglyyy!
+exit = False
+
+def tray():
+	import wx
+
+	class Tray(wx.TaskBarIcon):
+		def CreatePopupMenu(self):
+			menu = wx.Menu()
+			menu.Append(123, 'exit')
+			self.Bind(wx.EVT_MENU, self.on_exit, id=123)
+			return menu
+		#enddef
+		
+		def on_exit(self, e):
+			global exit
+			exit = True
+			print 'exit'
+		#enddef
+	#endclass
+
+	app = wx.App(0)
+	icon = wx.Icon('icon.jpg', wx.BITMAP_TYPE_JPEG)
+	tb = Tray()
+	tb.SetIcon(icon, 'nsupdate')
+	
+	app.MainLoop()
+#enddef
+
 def main():
 	print 'nsupdate v%s' % __version__
 
@@ -105,6 +134,9 @@ def main():
 	if sys.platform == 'win32':
 		print 'detected win32'
 		get_addrs = get_addrs_windows
+		
+		import thread
+		thread.start_new_thread(tray, ())
 	elif sys.platform == 'linux2':
 		print 'detected linux2'
 		get_addrs = get_addrs_linux
@@ -115,7 +147,7 @@ def main():
 	
 	addr_life = {}
 
-	while 1:
+	while not exit:
 		t = time.time()
 
 		addrs = get_addrs()
@@ -154,7 +186,10 @@ def main():
 		#endif
 
 		print 'sleeping for %ss' % cfg.interval
-		time.sleep(cfg.interval)
+		while time.time() - t < cfg.interval:
+			if exit: break
+			time.sleep(1)
+		#endwhile
 	#endwhile
 #enddef
 
