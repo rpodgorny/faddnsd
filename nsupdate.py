@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-__version__ = '0.0'
+__version__ = '0.1'
 
 import sys
 import socket
@@ -63,12 +63,18 @@ def get_addrs_linux():
 
 	for line in lines:
 		line = line.strip()
-		if not line.startswith('inet'): continue
+
+		if not 'ether' in line \
+		and not 'inet' in line:
+			continue
+		#endif
 
 		addr_type, addr, _ = line.split(' ', 2)
 		addr = addr.lower()
 
-		if addr_type == 'inet':
+		if 'ether' in addr_type:
+			addr_type = 'ether'
+		elif addr_type == 'inet':
 			addr_type = 'a'
 		elif addr_type == 'inet6':
 			addr_type = 'aaaa'
@@ -80,11 +86,16 @@ def get_addrs_linux():
 			addr = addr.split('/')[0]
 		except: pass
 
-		if addr.startswith('127.'): continue
-		if addr.startswith('10.'): continue
-		if addr.startswith('192.168.'): continue
-		if addr.startswith('::1'): continue
-		if addr.startswith('fe80:'): continue
+		if addr_type == 'ether':
+			if addr == '00:00:00:00:00:00': continue
+		elif addr_type == 'a':
+			if addr.startswith('127.'): continue
+			if addr.startswith('10.'): continue
+			if addr.startswith('192.168.'): continue
+		elif addr_type == 'aaaa':
+			if addr.startswith('::1'): continue
+			if addr.startswith('fe80:'): continue
+		#endif
 
 		ret.append((addr_type, addr))
 	#endfor
