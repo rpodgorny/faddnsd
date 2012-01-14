@@ -8,6 +8,7 @@ import subprocess
 import urllib
 import time
 import getopt
+import re
 
 class Config:
 	def __init__(self):
@@ -45,12 +46,21 @@ def get_addrs_windows():
 	lines = subprocess.check_output('netsh interface ipv6 show address')
 
 	for word in lines.split():
-		word = word.lower()
+		word = word.strip().lower()
 
 		if not ':' in word: continue
 		if not word.startswith('200'): continue
 
 		ret.append(('aaaa', word))
+	#endfor
+	
+	lines = subprocess.check_output('ipconfig /all')
+	for word in lines.split():
+		word = word.strip().lower()
+		if not re.match('..-..-..-..-..-..', word): continue
+
+		word = word.replace('-', ':')
+		ret.append(('ether', word))
 	#endfor
 	
 	return ret
