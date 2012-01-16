@@ -109,7 +109,7 @@ def get_addrs_linux():
 
 		ret.append((addr_type, addr))
 	#endfor
-	
+
 	return ret
 #enddef
 
@@ -127,7 +127,7 @@ def tray():
 			self.Bind(wx.EVT_MENU, self.on_exit, id=123)
 			return menu
 		#enddef
-		
+
 		def on_exit(self, e):
 			global exit
 			exit = True
@@ -140,7 +140,7 @@ def tray():
 	global tb
 	tb = Tray()
 	tb.SetIcon(icon, 'nsupdate')
-	
+
 	app.MainLoop()
 #enddef
 
@@ -199,14 +199,18 @@ def main():
 		url += '?' + urllib.urlencode({'version': __version__, 'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
 		print url
 
-		u = urllib.urlopen(url)
-		#for i in u: print i.strip()
-		if 'OK' in ''.join(u):
-			print 'OK'
-		else:
-			print 'NOT OK'
-			for i in u: print i.strip()
-		#endif
+		try:
+			u = urllib.urlopen(url)
+			#for i in u: print i.strip()
+			if 'OK' in ''.join(u):
+				print 'OK'
+			else:
+				print 'NOT OK'
+				for i in u: print i.strip()
+			#endif
+		except:
+			print 'urllib exception!'
+		#endtry
 
 		print 'sleeping for %ss' % cfg.interval
 		while time.time() - t < cfg.interval:
