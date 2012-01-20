@@ -211,6 +211,8 @@ def main():
 				#endif
 			except:
 				print 'urllib exception!'
+				import traceback
+				traceback.print_exc()
 			#endtry
 		#endfor
 
