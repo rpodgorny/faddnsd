@@ -32,7 +32,7 @@ class Config:
 			#endif
 		#endfor
 
-		if not self.url_prefix: self.url_prefix = ['http://wiki.asterix.cz/ip.php', ]
+		if not self.url_prefix: self.url_prefix = ['http://podgorny.cz:8765/', ]
 	#enddef
 
 	def check(self):
