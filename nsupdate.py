@@ -54,7 +54,7 @@ def call(cmd):
 #enddef
 
 def get_addrs_windows():
-	ret = []
+	ret = {'ether': [], 'inet': [], 'inet6': []}
 
 	lines = call('netsh interface ipv6 show address')
 
@@ -64,7 +64,7 @@ def get_addrs_windows():
 		if not ':' in word: continue
 		if not word.startswith('200'): continue
 
-		ret.append(('aaaa', word))
+		ret['inet6'].append(word)
 	#endfor
 	
 	lines = call('ipconfig /all')
@@ -73,14 +73,14 @@ def get_addrs_windows():
 		if not re.match('..-..-..-..-..-..', word): continue
 
 		word = word.replace('-', ':')
-		ret.append(('ether', word))
+		ret['ether'].append(word)
 	#endfor
 	
 	return ret
 #enddef
 
 def get_addrs_linux():
-	ret = []
+	ret = {'ether': [], 'inet': [], 'inet6': []}
 
 	lines = call('ip addr').split('\n')
 
@@ -93,14 +93,15 @@ def get_addrs_linux():
 		#endif
 
 		addr_type, addr, _ = line.split(' ', 2)
+		addr_type = addr_type.lower()
 		addr = addr.lower()
 
 		if 'ether' in addr_type:
 			addr_type = 'ether'
-		elif addr_type == 'inet':
-			addr_type = 'a'
-		elif addr_type == 'inet6':
-			addr_type = 'aaaa'
+		elif 'inet6' in addr_type:
+			addr_type = 'inet6'
+		elif 'inet' in addr_type:
+			addr_type = 'inet'
 		else:
 			print 'unknown address type!'
 		#endif
@@ -111,16 +112,16 @@ def get_addrs_linux():
 
 		if addr_type == 'ether':
 			if addr == '00:00:00:00:00:00': continue
-		elif addr_type == 'a':
+		elif addr_type == 'inet':
 			if addr.startswith('127.'): continue
 			if addr.startswith('10.'): continue
 			if addr.startswith('192.168.'): continue
-		elif addr_type == 'aaaa':
+		elif addr_type == 'inet6':
 			if addr.startswith('::1'): continue
 			if addr.startswith('fe80:'): continue
 		#endif
 
-		ret.append((addr_type, addr))
+		ret[addr_type].append(addr)
 	#endfor
 
 	return ret
@@ -187,29 +188,16 @@ def main():
 		t = time.time()
 
 		addrs = get_addrs()
-		for af,a in addrs: print af,a
+		print addrs
 		
-		for af,a in addrs:
-			if not a in addr_life: addr_life[a] = t
-		#endfor
-		
-		for k,v in addr_life.items():
-			alive = 'DEAD'
-			for af,a in addrs:
-				if a != k: continue
-				alive = 'ALIVE'
-				break
-			#endfor
-
-			print '%s -> %ss -> %s' % (k, t-v, alive)
-		#endfor
-
-		tmp = []
-		for af,a in addrs: tmp.append('%s=%s' % (af, a))
-		addrs = ','.join(tmp)
-
 		for url in cfg.url_prefix:
-			url += '?' + urllib.urlencode({'version': __version__, 'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
+			d = {
+				'version': __version__,
+				'host': cfg.host,
+				'domain': cfg.domain
+			}
+			d.update(addrs)
+			url += '?' + urllib.urlencode(d, True)
 			print url
 
 			try:
