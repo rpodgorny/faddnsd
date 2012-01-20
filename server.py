@@ -27,7 +27,13 @@ class NsUpdateServer(object):
 		for af in 'ether', 'inet', 'inet6':
 			if not af in kwargs: continue
 
-			for a in kwargs[af]:
+			if isinstance(kwargs[af], unicode):
+				addrs = (kwargs[af], )
+			else:
+				addrs = kwargs[af]
+			#endif
+
+			for a in addrs:
 				f.write('%s %s\n' % (af, a))
 			#endfor
 		#endfor
