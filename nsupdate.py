@@ -40,10 +40,21 @@ class Config:
 
 cfg = Config()
 
+def call(cmd):
+	try:
+		subprocess.check_output(cmd, shell=True)
+	except AttributeError:
+		# python < 2.7
+		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+		p.wait()
+		return p.communicate()[0]
+	#endtry
+#enddef
+
 def get_addrs_windows():
 	ret = []
 
-	lines = subprocess.check_output('netsh interface ipv6 show address')
+	lines = call('netsh interface ipv6 show address')
 
 	for word in lines.split():
 		word = word.strip().lower()
@@ -54,7 +65,7 @@ def get_addrs_windows():
 		ret.append(('aaaa', word))
 	#endfor
 	
-	lines = subprocess.check_output('ipconfig /all')
+	lines = call('ipconfig /all')
 	for word in lines.split():
 		word = word.strip().lower()
 		if not re.match('..-..-..-..-..-..', word): continue
@@ -69,7 +80,7 @@ def get_addrs_windows():
 def get_addrs_linux():
 	ret = []
 
-	lines = subprocess.check_output('ip addr', shell=True).split('\n')
+	lines = call('ip addr').split('\n')
 
 	for line in lines:
 		line = line.strip()
