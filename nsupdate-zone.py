@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-__version__ = '0.0'
+__version__ = '0.1'
 
 import sys
 import glob
@@ -120,14 +120,19 @@ def main():
 		#print m.groups()
 
 		for af,a in change.addrs:
+			if af == 'inet'
+				af = 'a'
+			elif af == 'inet6':
+				af = 'aaaa'
+			else:
+				print 'unsupported record type %s' % af
+				continue
+			#endif
+
 			host = change.host.lower()
 			ttl = change.ttl.upper()
 			af = af.upper()
 
-			if af not in ('A', 'AAAA'):
-				print 'unsupported record type %s' % af
-				continue
-			#endif
 
 			out_file.write('%s\t%s\t%s\t%s ; %s %s\n' % (host, ttl, af, a, change.date, change.time))
 			print '%s %s' % (af, a)
