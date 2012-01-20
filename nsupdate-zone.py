@@ -133,7 +133,6 @@ def main():
 			ttl = change.ttl.upper()
 			af = af.upper()
 
-
 			out_file.write('%s\t%s\t%s\t%s ; %s %s\n' % (host, ttl, af, a, change.datetime))
 			print '%s %s' % (af, a)
 		#endfor
