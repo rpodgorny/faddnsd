@@ -15,7 +15,7 @@ class Config:
 		self.domain = None
 		self.host = socket.gethostname().lower()
 		self.interval = 600
-		self.url_prefix = 'http://wiki.asterix.cz/ip.php'
+		self.url_prefix = []
 	#enddef
 
 	def getopt(self, argv):
@@ -28,9 +28,11 @@ class Config:
 			elif o in ('-i', '--interval'):
 				self.interval = int(a)
 			elif o in ('-u', '--url-prefix'):
-				self.url_prefix = a
+				self.url_prefix.append(a)
 			#endif
 		#endfor
+
+		if not self.url_prefix: self.url_prefix = ['http://wiki.asterix.cz/ip.php', ]
 	#enddef
 
 	def check(self):
@@ -42,7 +44,7 @@ cfg = Config()
 
 def call(cmd):
 	try:
-		subprocess.check_output(cmd, shell=True)
+		return subprocess.check_output(cmd, shell=True)
 	except AttributeError:
 		# python < 2.7
 		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
@@ -206,22 +208,23 @@ def main():
 		for af,a in addrs: tmp.append('%s=%s' % (af, a))
 		addrs = ','.join(tmp)
 
-		url = cfg.url_prefix
-		url += '?' + urllib.urlencode({'version': __version__, 'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
-		print url
+		for url in cfg.url_prefix:
+			url += '?' + urllib.urlencode({'version': __version__, 'host': cfg.host, 'domain': cfg.domain, 'addrs': addrs})
+			print url
 
-		try:
-			u = urllib.urlopen(url)
-			#for i in u: print i.strip()
-			if 'OK' in ''.join(u):
-				print 'OK'
-			else:
-				print 'NOT OK'
-				for i in u: print i.strip()
-			#endif
-		except:
-			print 'urllib exception!'
-		#endtry
+			try:
+				u = urllib.urlopen(url)
+				#for i in u: print i.strip()
+				if 'OK' in ''.join(u):
+					print 'OK'
+				else:
+					print 'NOT OK'
+					for i in u: print i.strip()
+				#endif
+			except:
+				print 'urllib exception!'
+			#endtry
+		#endfor
 
 		print 'sleeping for %ss' % cfg.interval
 		while time.time() - t < cfg.interval:
