@@ -37,4 +37,5 @@ class NsUpdateServer(object):
 #endclass
 
 cherrypy.server.socket_host = '0.0.0.0'
+cherrypy.server.socket_port = 8765
 cherrypy.quickstart(NsUpdateServer())
