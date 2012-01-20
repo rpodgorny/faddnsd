@@ -32,7 +32,7 @@ class Change:
 		self.fn = fn
 
 		f = open(fn, 'r')
-		self.version, self.date, self.time, self.remote_addr = f.readline().split()
+		self.version, self.datetime, self.remote_addr = f.readline().split()
 		self.host, self.domain = f.readline().split()
 
 		self.addrs = []
@@ -120,7 +120,7 @@ def main():
 		#print m.groups()
 
 		for af,a in change.addrs:
-			if af == 'inet'
+			if af == 'inet':
 				af = 'a'
 			elif af == 'inet6':
 				af = 'aaaa'
@@ -134,7 +134,7 @@ def main():
 			af = af.upper()
 
 
-			out_file.write('%s\t%s\t%s\t%s ; %s %s\n' % (host, ttl, af, a, change.date, change.time))
+			out_file.write('%s\t%s\t%s\t%s ; %s %s\n' % (host, ttl, af, a, change.datetime))
 			print '%s %s' % (af, a)
 		#endfor
 
