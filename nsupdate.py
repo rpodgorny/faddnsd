@@ -9,6 +9,7 @@ import urllib
 import time
 import getopt
 import re
+import tray
 
 class Config:
 	def __init__(self):
@@ -127,37 +128,6 @@ def get_addrs_linux():
 	return ret
 #enddef
 
-# TODO: uglyyy!
-exit = False
-tb = None
-
-def tray():
-	import wx
-
-	class Tray(wx.TaskBarIcon):
-		def CreatePopupMenu(self):
-			menu = wx.Menu()
-			menu.Append(123, 'exit')
-			self.Bind(wx.EVT_MENU, self.on_exit, id=123)
-			return menu
-		#enddef
-
-		def on_exit(self, e):
-			global exit
-			exit = True
-			print 'exit'
-		#enddef
-	#endclass
-
-	app = wx.App(0)
-	icon = wx.Icon('icon.jpg', wx.BITMAP_TYPE_JPEG)
-	global tb
-	tb = Tray()
-	tb.SetIcon(icon, 'nsupdate')
-
-	app.MainLoop()
-#enddef
-
 def main():
 	print 'nsupdate v%s' % __version__
 
@@ -172,8 +142,8 @@ def main():
 		print 'detected win32'
 		get_addrs = get_addrs_windows
 		
-		import thread
-		thread.start_new_thread(tray, ())
+		import tray
+		tray.run()
 	elif sys.platform == 'linux2':
 		print 'detected linux2'
 		get_addrs = get_addrs_linux
@@ -184,12 +154,12 @@ def main():
 	
 	addr_life = {}
 
-	while not exit:
+	while not tray._exit:
 		t = time.time()
 
 		addrs = get_addrs()
 		print addrs
-		
+
 		for url in cfg.url_prefix:
 			d = {
 				'version': __version__,
@@ -218,13 +188,14 @@ def main():
 
 		print 'sleeping for %ss' % cfg.interval
 		while time.time() - t < cfg.interval:
-			if exit: break
+			if tray._exit: break
 			time.sleep(1)
 		#endwhile
 	#endwhile
-	
+
 	if sys.platform == 'win32':
-		tb.Destroy()
+		#tray.exit()
+		pass
 	#endif
 #enddef
 
