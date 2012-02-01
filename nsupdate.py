@@ -17,7 +17,7 @@ import logging
 
 def log_e(t, v, tb): logging.exception('unhandled exception!')
 # TODO: not working
-sys.excepthook = log_e
+#sys.excepthook = log_e
 
 class Config:
 	def __init__(self):
@@ -170,7 +170,7 @@ def main():
 		get_addrs = get_addrs_windows
 
 		import tray
-		tray.run()
+		tray.run('nsupdate v%s' % __version__)
 	elif sys.platform == 'linux2':
 		logging.info('detected linux2')
 		get_addrs = get_addrs_linux

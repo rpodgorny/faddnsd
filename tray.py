@@ -22,7 +22,7 @@ class Tray(wx.TaskBarIcon):
 	#enddef
 #endclass
 
-def run_app():
+def run_app(text):
 	app = wx.App(0)
 
 	global tb
@@ -30,16 +30,16 @@ def run_app():
 	
 	logger.debug('loading icon')
 	icon = wx.Icon('icon.jpg', wx.BITMAP_TYPE_JPEG)
-	tb.SetIcon(icon, 'nsupdate')
+	tb.SetIcon(icon, text)
 
 	logger.info('starting MainLoop')
 	app.MainLoop()
 #enddef
 
-def run():
+def run(text):
 	logger.debug('run')
 
-	thread.start_new_thread(run_app, ())
+	thread.start_new_thread(run_app, (text, ))
 #enddef
 
 def exit():
