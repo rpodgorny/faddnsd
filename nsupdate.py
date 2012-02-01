@@ -10,13 +10,10 @@ import time
 import getopt
 import re
 import tray
-
 import logging
 
-#logger.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=logging.DEBUG)
-
-def log_e(t, v, tb): logging.exception('unhandled exception!')
 # TODO: not working
+#def log_e(t, v, tb): logging.exception('unhandled exception!')
 #sys.excepthook = log_e
 
 class Config:
