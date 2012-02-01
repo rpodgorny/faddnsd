@@ -11,6 +11,8 @@ import getopt
 import re
 import tray
 
+import logging
+
 class Config:
 	def __init__(self):
 		self.domain = None
@@ -44,6 +46,8 @@ class Config:
 cfg = Config()
 
 def call(cmd):
+	logging.debug('calling: %s', cmd)
+
 	try:
 		return subprocess.check_output(cmd, shell=True)
 	except AttributeError:
@@ -55,7 +59,7 @@ def call(cmd):
 #enddef
 
 def get_addrs_windows():
-	ret = {'ether': [], 'inet': [], 'inet6': []}
+	ret = []
 
 	lines = call('netsh interface ipv6 show address')
 
@@ -65,7 +69,7 @@ def get_addrs_windows():
 		if not ':' in word: continue
 		if not word.startswith('200'): continue
 
-		ret['inet6'].append(word)
+		ret.append({'af': 'inet6', 'a': word})
 	#endfor
 	
 	lines = call('ipconfig /all')
@@ -74,14 +78,14 @@ def get_addrs_windows():
 		if not re.match('..-..-..-..-..-..', word): continue
 
 		word = word.replace('-', ':')
-		ret['ether'].append(word)
+		ret.append({'af': 'ether', 'a': word})
 	#endfor
 	
 	return ret
 #enddef
 
 def get_addrs_linux():
-	ret = {'ether': [], 'inet': [], 'inet6': []}
+	ret = []
 
 	lines = call('ip addr').split('\n')
 
@@ -122,33 +126,33 @@ def get_addrs_linux():
 			if addr.startswith('fe80:'): continue
 		#endif
 
-		ret[addr_type].append(addr)
+		ret.append({'af': addr_type, 'a': addr})
 	#endfor
 
 	return ret
 #enddef
 
 def main():
-	print 'nsupdate v%s' % __version__
+	logging.info('starting nsupdate v%s',  __version__)
 
 	cfg.getopt(sys.argv[1:])
 	err = cfg.check()
 	if err:
-		print err
+		logging.error(err)
 		return
 	#endif
 
 	if sys.platform == 'win32':
-		print 'detected win32'
+		logging.info('detected win32')
 		get_addrs = get_addrs_windows
 		
 		import tray
 		tray.run()
 	elif sys.platform == 'linux2':
-		print 'detected linux2'
+		logging.info('detected linux2')
 		get_addrs = get_addrs_linux
 	else:
-		print 'unknown platform!'
+		logging.error('unknown platform!')
 		return
 	#endif
 	
@@ -158,7 +162,7 @@ def main():
 		t = time.time()
 
 		addrs = get_addrs()
-		print addrs
+		logging.debug(addrs)
 
 		for url in cfg.url_prefix:
 			d = {
@@ -168,25 +172,25 @@ def main():
 			}
 			d.update(addrs)
 			url += '?' + urllib.urlencode(d, True)
-			print url
+			logging.debug(url)
 
 			try:
 				u = urllib.urlopen(url)
 				#for i in u: print i.strip()
 				if 'OK' in ''.join(u):
-					print 'OK'
+					logging.info('OK')
 				else:
-					print 'NOT OK'
+					logging.warning('NOT OK')
 					for i in u: print i.strip()
 				#endif
 			except:
-				print 'urllib exception!'
-				import traceback
-				traceback.print_exc()
+				logging.exception('urllib exception!')
+				#import traceback
+				#traceback.print_exc()
 			#endtry
 		#endfor
 
-		print 'sleeping for %ss' % cfg.interval
+		logging.info('sleeping for %ss', cfg.interval)
 		while time.time() - t < cfg.interval:
 			if tray._exit: break
 			time.sleep(1)
