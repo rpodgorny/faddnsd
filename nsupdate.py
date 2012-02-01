@@ -12,6 +12,11 @@ import re
 import tray
 
 import logging
+logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=logging.DEBUG)
+
+def log_e(t, v, tb): logging.exception('unhandled exception!')
+# TODO: not working
+sys.excepthook = log_e
 
 class Config:
 	def __init__(self):
@@ -108,7 +113,7 @@ def get_addrs_linux():
 		elif 'inet' in addr_type:
 			addr_type = 'inet'
 		else:
-			print 'unknown address type!'
+			logging.warning('unknown address type!')
 		#endif
 
 		try:
@@ -145,7 +150,7 @@ def main():
 	if sys.platform == 'win32':
 		logging.info('detected win32')
 		get_addrs = get_addrs_windows
-		
+
 		import tray
 		tray.run()
 	elif sys.platform == 'linux2':
@@ -155,51 +160,70 @@ def main():
 		logging.error('unknown platform!')
 		return
 	#endif
-	
+
 	addr_life = {}
 
-	while not tray._exit:
-		t = time.time()
+	try:
+		while not tray._exit:
+			t = time.time()
 
-		addrs = get_addrs()
-		logging.debug(addrs)
+			addrs = get_addrs()
+			logging.debug(addrs)
 
-		for url in cfg.url_prefix:
-			d = {
-				'version': __version__,
-				'host': cfg.host,
-				'domain': cfg.domain
-			}
-			d.update(addrs)
-			url += '?' + urllib.urlencode(d, True)
-			logging.debug(url)
+			for url in cfg.url_prefix:
+				# TODO: for the next version?
+				#recs = []
+				#for i in addrs:
+				#	r = []
+				#	for k,v in i.items(): r.append('%s=%s' % (k, v))
+				#	r = ','.join(r)
+				#	recs.append(r)
+				#endfor
+				#logging.debug('recs = %s', recs)
+				
+				a = {'ether': [], 'inet': [], 'inet6': []}
+				for i in addrs:
+					if not i['af'] in a: continue
+					a[i['af']].append(i['a'])
+				#endfor
 
-			try:
-				u = urllib.urlopen(url)
-				#for i in u: print i.strip()
-				if 'OK' in ''.join(u):
-					logging.info('OK')
-				else:
-					logging.warning('NOT OK')
-					for i in u: print i.strip()
-				#endif
-			except:
-				logging.exception('urllib exception!')
-				#import traceback
-				#traceback.print_exc()
-			#endtry
-		#endfor
+				d = {
+					'version': __version__,
+					'host': cfg.host,
+					'domain': cfg.domain,
+					#'records': recs
+				}
+				d.update(a)
+				url += '?' + urllib.urlencode(d, True)
 
-		logging.info('sleeping for %ss', cfg.interval)
-		while time.time() - t < cfg.interval:
-			if tray._exit: break
-			time.sleep(1)
+				logging.debug(url)
+
+				try:
+					u = urllib.urlopen(url)
+
+					if 'OK' in ''.join(u):
+						logging.info('OK')
+					else:
+						logging.warning('NOT OK')
+						for i in u: logging.debug(i.strip())
+					#endif
+				except:
+					logging.exception('urllib exception!')
+				#endtry
+			#endfor
+
+			logging.info('sleeping for %ss', cfg.interval)
+			while time.time() - t < cfg.interval:
+				if tray._exit: break
+				time.sleep(1)
+			#endwhile
 		#endwhile
-	#endwhile
+	except KeyboardInterrupt:
+		logging.info('keyboard interrupt!')
+	#endtry
 
 	if sys.platform == 'win32':
-		#tray.exit()
-		pass
+		tray.exit()
 	#endif
 #enddef
 
