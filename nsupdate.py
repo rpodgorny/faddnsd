@@ -12,7 +12,8 @@ import re
 import tray
 
 import logging
-logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=logging.DEBUG)
+
+#logger.basicConfig(format='%(asctime)s %(name)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 def log_e(t, v, tb): logging.exception('unhandled exception!')
 # TODO: not working
@@ -137,7 +138,24 @@ def get_addrs_linux():
 	return ret
 #enddef
 
+def init_logging():
+	logger = logging.getLogger()
+	logger.setLevel(logging.DEBUG)
+
+	sh = logging.StreamHandler()
+	fh = logging.FileHandler('nsupdate.log')
+
+	sh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+	fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+	logger.addHandler(sh)
+	logger.addHandler(fh)
+#enddef
+
 def main():
+	init_logging()
+
+	logging.info('*' * 40)
 	logging.info('starting nsupdate v%s',  __version__)
 
 	cfg.getopt(sys.argv[1:])
