@@ -11,6 +11,7 @@ import getopt
 import re
 import tray
 import logging
+from iniparser import IniParser
 
 # TODO: not working
 #def log_e(t, v, tb): logging.exception('unhandled exception!')
@@ -22,6 +23,16 @@ class Config:
 		self.host = socket.gethostname().lower()
 		self.interval = 600
 		self.url_prefix = []
+	#enddef
+	
+	def read_from_ini(self, fn):
+		ini = IniParser()
+		ini.read(fn)
+
+		self.domain = ini.get('General', 'Domain', self.domain)
+		self.host = ini.get('General', 'Host', self.host)
+		self.interval = ini.getint('General', 'Interval', self.interval)
+		self.url_prefix = ini.get('General', 'UrlPrefix', self.url_prefix)
 	#enddef
 
 	def getopt(self, argv):
@@ -44,6 +55,17 @@ class Config:
 	def check(self):
 		if not self.domain: return 'domain not specified!'
 	#enddef
+	
+	# TODO: move this to some common module
+	def __str__(self):
+		l = []
+
+		for k,v in vars(self).items():
+			l.append('%s=\'%s\'' % (k, v))
+		#endfor
+
+		return ', '.join(l)
+	#enddef 
 #endclass
 
 cfg = Config()
@@ -154,6 +176,8 @@ def main():
 
 	logging.info('*' * 40)
 	logging.info('starting nsupdate v%s',  __version__)
+	
+	cfg.read_from_ini('nsupdate.ini')
 
 	cfg.getopt(sys.argv[1:])
 	err = cfg.check()
@@ -161,6 +185,8 @@ def main():
 		logging.error(err)
 		return
 	#endif
+	
+	logging.info('%s', cfg)
 
 	if sys.platform == 'win32':
 		logging.info('detected win32')
@@ -195,7 +221,7 @@ def main():
 				#	recs.append(r)
 				#endfor
 				#logging.debug('recs = %s', recs)
-				
+
 				a = {'ether': [], 'inet': [], 'inet6': []}
 				for i in addrs:
 					if not i['af'] in a: continue

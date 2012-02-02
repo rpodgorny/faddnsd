@@ -27,7 +27,7 @@ def run_app(text):
 
 	global tb
 	tb = Tray()
-	
+
 	logger.debug('loading icon')
 	icon = wx.Icon('icon.jpg', wx.BITMAP_TYPE_JPEG)
 	tb.SetIcon(icon, text)
