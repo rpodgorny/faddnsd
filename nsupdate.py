@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-__version__ = '0.4'
+__version__ = '0.5'
 
 import sys
 import socket
@@ -203,7 +203,7 @@ def main():
 		get_addrs = get_addrs_windows
 
 		import tray
-		tray.run('nsupdate v%s' % __version__)
+		tray.run('nsupdate.png', 'nsupdate v%s' % __version__)
 	elif sys.platform == 'linux2':
 		logging.info('detected linux2')
 		get_addrs = get_addrs_linux
