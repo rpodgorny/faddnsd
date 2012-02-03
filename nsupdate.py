@@ -4,7 +4,6 @@ __version__ = '0.4'
 
 import sys
 import socket
-import subprocess
 import urllib
 import time
 import getopt
@@ -70,8 +69,11 @@ class Config:
 
 cfg = Config()
 
-def call(cmd):
+# TODO: this is disabled because it does not work when compiled as windows application
+def call_old(cmd):
 	logging.debug('calling: %s', cmd)
+	
+	import subprocess
 
 	try:
 		return subprocess.check_output(cmd, shell=True)
@@ -81,6 +83,14 @@ def call(cmd):
 		p.wait()
 		return p.communicate()[0]
 	#endtry
+#enddef
+
+def call(cmd):
+	logging.debug('calling: %s', cmd)
+
+	import os
+	f = os.popen(cmd)
+	return f.read()
 #enddef
 
 def get_addrs_windows():
