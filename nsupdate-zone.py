@@ -65,6 +65,8 @@ def main():
 		print 'no change files found, doing nothing'
 		return
 	#endif
+
+	for i in changes: print i.host, i.domain, i.addrs
 	
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
 	subprocess.call(cmd, shell=True)
@@ -119,6 +121,7 @@ def main():
 		#print m
 		#print m.groups()
 
+		out = ''
 		for af,a in change.addrs:
 			if af == 'inet':
 				af = 'a'
@@ -133,11 +136,18 @@ def main():
 			ttl = change.ttl.upper()
 			af = af.upper()
 
-			out_file.write('%s\t%s\t%s\t%s ; %s %s\n' % (host, ttl, af, a, change.datetime))
+			out += '%s\t%s\t%s\t%s ; %s\n' % (host, ttl, af, a, change.datetime)
 			print '%s %s' % (af, a)
 		#endfor
 
-		change.processed = True
+		if out:
+			out_file.write(out)
+			change.processed = True
+		else:
+			print 'change contains no usable data, keeping old record'
+			out_file.write(line)
+		#endif
+
 	#endfor
 
 	zone_file.close()
