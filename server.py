@@ -39,6 +39,8 @@ class NsUpdateServer(object):
 		#endfor
 
 		f.close()
+
+		return 'OK'
 	#enddef
 #endclass
 
