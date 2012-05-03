@@ -22,7 +22,7 @@ class Config:
 		self.interval = 600
 		self.url_prefix = []
 	#enddef
-	
+
 	def read_from_ini(self, fn):
 		ini = IniParser()
 		ini.read(fn)
