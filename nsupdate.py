@@ -202,7 +202,7 @@ def main():
 			t = time.time()
 
 			addrs = get_addrs()
-			log.log(addrs)
+			log.log(str(addrs))
 
 			for url in cfg.url_prefix:
 				# TODO: for the next version?
