@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-__version__ = '0.6'
+__version__ = '1.0'
 
 import sys
 import socket
@@ -8,12 +8,15 @@ import urllib
 import time
 import getopt
 import re
-import tray
 from iniparser import IniParser
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 
 import log
 sys.excepthook = log.log_exception
 log.filename = 'nsupdate.log'
+
+# TODO: uglyyy!!!
+_run = True
 
 class Config:
 	def __init__(self):
@@ -166,6 +169,27 @@ def get_addrs_linux():
 	return ret
 #enddef
 
+class XMLRPCServer(object):
+	def exit(self):
+		log.log('xmlrcp: exit')
+		global _run
+		_run = False
+	#enddef
+#endclass
+
+def init_xmlrpc():
+	log.log('starting xmlrpc')
+
+	server = SimpleXMLRPCServer(('localhost', 8889), allow_none=True, logRequests=False)
+	server.register_introspection_functions()
+	
+	s = XMLRPCServer()
+	server.register_instance(s)
+	
+	import thread
+	thread.start_new_thread(server.serve_forever, ())
+#enddef
+
 def main():
 	log.log('*' * 40)
 	log.log('starting nsupdate v%s' %  __version__)
@@ -184,9 +208,6 @@ def main():
 	if sys.platform == 'win32':
 		log.log('detected win32')
 		get_addrs = get_addrs_windows
-
-		import tray
-		tray.run('nsupdate.png', 'nsupdate v%s' % __version__)
 	elif sys.platform == 'linux2':
 		log.log('detected linux2')
 		get_addrs = get_addrs_linux
@@ -194,11 +215,14 @@ def main():
 		log.log('unknown platform!')
 		return
 	#endif
+	
+	init_xmlrpc()
 
 	addr_life = {}
 
 	try:
-		while not tray._exit:
+		global _run
+		while _run:
 			t = time.time()
 
 			addrs = get_addrs()
@@ -248,18 +272,15 @@ def main():
 
 			log.log('sleeping for %ss' % cfg.interval)
 			while time.time() - t < cfg.interval:
-				if tray._exit: break
+				if not _run: break
 				time.sleep(1)
 			#endwhile
 		#endwhile
 	except KeyboardInterrupt:
 		log.log('keyboard interrupt!')
 	#endtry
-
-	if sys.platform == 'win32':
-		log.log('shutting down tray')
-		tray.exit()
-	#endif
+	
+	log.log('exited main loop')
 #enddef
 
 if __name__ == '__main__': main()
