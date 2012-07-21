@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
-__version__ = '0.5'
+__version__ = '1.0'
 
 import sys
 import socket
@@ -8,13 +8,15 @@ import urllib
 import time
 import getopt
 import re
-import tray
-import logging
 from iniparser import IniParser
+from SimpleXMLRPCServer import SimpleXMLRPCServer
 
-# TODO: not working
-#def log_e(t, v, tb): logging.exception('unhandled exception!')
-#sys.excepthook = log_e
+import log
+sys.excepthook = log.log_exception
+log.filename = 'nsupdate.log'
+
+# TODO: uglyyy!!!
+_run = True
 
 class Config:
 	def __init__(self):
@@ -23,7 +25,7 @@ class Config:
 		self.interval = 600
 		self.url_prefix = []
 	#enddef
-	
+
 	def read_from_ini(self, fn):
 		ini = IniParser()
 		ini.read(fn)
@@ -71,7 +73,7 @@ cfg = Config()
 
 # TODO: this is disabled because it does not work when compiled as windows application
 def call_old(cmd):
-	logging.debug('calling: %s', cmd)
+	log.log('calling: %s' % cmd)
 	
 	import subprocess
 
@@ -86,7 +88,7 @@ def call_old(cmd):
 #enddef
 
 def call(cmd):
-	logging.debug('calling: %s', cmd)
+	log.log('calling: %s' % cmd)
 
 	import os
 	f = os.popen(cmd)
@@ -143,7 +145,7 @@ def get_addrs_linux():
 		elif 'inet' in addr_type:
 			addr_type = 'inet'
 		else:
-			logging.warning('unknown address type!')
+			log.log('unknown address type!')
 		#endif
 
 		try:
@@ -167,59 +169,64 @@ def get_addrs_linux():
 	return ret
 #enddef
 
-def init_logging():
-	logger = logging.getLogger()
-	logger.setLevel(logging.DEBUG)
+class XMLRPCServer(object):
+	def exit(self):
+		log.log('xmlrcp: exit')
+		global _run
+		_run = False
+	#enddef
+#endclass
 
-	sh = logging.StreamHandler()
-	fh = logging.FileHandler('nsupdate.log')
+def init_xmlrpc():
+	log.log('starting xmlrpc')
 
-	sh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-	fh.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-
-	logger.addHandler(sh)
-	logger.addHandler(fh)
+	server = SimpleXMLRPCServer(('localhost', 8889), allow_none=True, logRequests=False)
+	server.register_introspection_functions()
+	
+	s = XMLRPCServer()
+	server.register_instance(s)
+	
+	import thread
+	thread.start_new_thread(server.serve_forever, ())
 #enddef
 
 def main():
-	init_logging()
-
-	logging.info('*' * 40)
-	logging.info('starting nsupdate v%s',  __version__)
+	log.log('*' * 40)
+	log.log('starting nsupdate v%s' %  __version__)
 	
 	cfg.read_from_ini('nsupdate.ini')
 
 	cfg.getopt(sys.argv[1:])
 	err = cfg.check()
 	if err:
-		logging.error(err)
+		log.log(err)
 		return
 	#endif
 	
-	logging.info('%s', cfg)
+	log.log('%s' % cfg)
 
 	if sys.platform == 'win32':
-		logging.info('detected win32')
+		log.log('detected win32')
 		get_addrs = get_addrs_windows
-
-		import tray
-		tray.run('nsupdate.png', 'nsupdate v%s' % __version__)
 	elif sys.platform == 'linux2':
-		logging.info('detected linux2')
+		log.log('detected linux2')
 		get_addrs = get_addrs_linux
 	else:
-		logging.error('unknown platform!')
+		log.log('unknown platform!')
 		return
 	#endif
+	
+	init_xmlrpc()
 
 	addr_life = {}
 
 	try:
-		while not tray._exit:
+		global _run
+		while _run:
 			t = time.time()
 
 			addrs = get_addrs()
-			logging.debug(addrs)
+			log.log(str(addrs))
 
 			for url in cfg.url_prefix:
 				# TODO: for the next version?
@@ -230,7 +237,7 @@ def main():
 				#	r = ','.join(r)
 				#	recs.append(r)
 				#endfor
-				#logging.debug('recs = %s', recs)
+				#log.log('recs = %s' % recs)
 
 				a = {'ether': [], 'inet': [], 'inet6': []}
 				for i in addrs:
@@ -247,35 +254,33 @@ def main():
 				d.update(a)
 				url += '?' + urllib.urlencode(d, True)
 
-				logging.debug(url)
+				log.log(url)
 
 				try:
 					u = urllib.urlopen(url)
 
 					if 'OK' in ''.join(u):
-						logging.info('OK')
+						log.log('OK')
 					else:
-						logging.warning('NOT OK')
-						for i in u: logging.debug(i.strip())
+						log.log('NOT OK')
+						for i in u: log.log(i.strip())
 					#endif
 				except:
-					logging.exception('urllib exception!')
+					log.log_exc()
 				#endtry
 			#endfor
 
-			logging.info('sleeping for %ss', cfg.interval)
+			log.log('sleeping for %ss' % cfg.interval)
 			while time.time() - t < cfg.interval:
-				if tray._exit: break
+				if not _run: break
 				time.sleep(1)
 			#endwhile
 		#endwhile
 	except KeyboardInterrupt:
-		logging.info('keyboard interrupt!')
+		log.log('keyboard interrupt!')
 	#endtry
-
-	if sys.platform == 'win32':
-		tray.exit()
-	#endif
+	
+	log.log('exited main loop')
 #enddef
 
 if __name__ == '__main__': main()
