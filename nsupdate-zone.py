@@ -94,7 +94,7 @@ def main():
 
 		change = None
 		for i in changes:
-			if not line.startswith(i.host): continue
+			if not line.startswith(i.host+'\t'): continue
 			if i.domain != zone: continue
 			change = i
 			break
