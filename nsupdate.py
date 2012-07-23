@@ -4,7 +4,7 @@ __version__ = '1.0'
 
 import sys
 import socket
-import urllib
+import urllib, urllib2
 import time
 import getopt
 import re
@@ -257,7 +257,7 @@ def main():
 				log.log(url)
 
 				try:
-					u = urllib.urlopen(url)
+					u = urllib2.urlopen(url)
 
 					if 'OK' in ''.join(u):
 						log.log('OK')
@@ -265,15 +265,20 @@ def main():
 						log.log('NOT OK')
 						for i in u: log.log(i.strip())
 					#endif
-				except:
-					log.log_exc()
+				except urllib2.URLError:
+					log.log('urllib2.urlopen() exception, probably failed to connect')
+					#log.log_exc()
 				#endtry
 			#endfor
 
 			log.log('sleeping for %ss' % cfg.interval)
 			while time.time() - t < cfg.interval:
 				if not _run: break
-				time.sleep(1)
+
+				# had to add this shit because of the weird 'function call interrupted' behaviour on windows
+				try: time.sleep(1)
+				except KeyboardInterrupt: raise
+				except: pass
 			#endwhile
 		#endwhile
 	except KeyboardInterrupt:
