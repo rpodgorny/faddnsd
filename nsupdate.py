@@ -134,6 +134,8 @@ def get_addrs_linux():
 			continue
 		#endif
 
+		if 'temporary' in line: continue
+
 		addr_type, addr, _ = line.split(' ', 2)
 		addr_type = addr_type.lower()
 		addr = addr.lower()
