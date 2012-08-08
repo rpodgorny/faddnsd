@@ -1,6 +1,6 @@
 #!/usr/bin/python2
 
-__version__ = '1.1'
+__version__ = '1.2'
 
 import sys
 import socket
@@ -8,6 +8,7 @@ import urllib, urllib2
 import time
 import getopt
 import re
+import os.path
 from iniparser import IniParser
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 
@@ -195,8 +196,13 @@ def init_xmlrpc():
 def main():
 	log.log('*' * 40)
 	log.log('starting nsupdate v%s' %  __version__)
-	
-	cfg.read_from_ini('nsupdate.ini')
+
+	for fn in (os.path.expanduser('~/.nsupdate.conf'), 'nsupdate.ini', '/etc/nsupdate.conf'):
+		if not os.path.isfile(fn): continue
+		log.log('reading configuration from %s' % fn)
+		cfg.read_from_ini('nsupdate.ini')
+		break
+	#endfor
 
 	cfg.getopt(sys.argv[1:])
 	err = cfg.check()
