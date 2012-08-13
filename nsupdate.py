@@ -1,6 +1,6 @@
 #!/usr/bin/python2
 
-__version__ = '1.2'
+__version__ = '1.3'
 
 import sys
 import socket
@@ -101,13 +101,18 @@ def get_addrs_windows():
 
 	lines = call('netsh interface ipv6 show address')
 
-	for word in lines.split():
-		word = word.strip().lower()
+	for line in lines.split('\n'):
+		print line
+		if 'Temporary' in line: continue
 
-		if not ':' in word: continue
-		if not word.startswith('200'): continue
+		for word in line.split():
+			word = word.strip().lower()
 
-		ret.append({'af': 'inet6', 'a': word})
+			if not ':' in word: continue
+			if not word.startswith('200'): continue
+
+			ret.append({'af': 'inet6', 'a': word})
+		#endfor
 	#endfor
 	
 	lines = call('ipconfig /all')
