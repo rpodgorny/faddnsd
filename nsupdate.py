@@ -205,7 +205,7 @@ def main():
 	for fn in (os.path.expanduser('~/.nsupdate.conf'), 'nsupdate.ini', '/etc/nsupdate.conf'):
 		if not os.path.isfile(fn): continue
 		log.log('reading configuration from %s' % fn)
-		cfg.read_from_ini('nsupdate.ini')
+		cfg.read_from_ini(fn)
 		break
 	#endfor
 
