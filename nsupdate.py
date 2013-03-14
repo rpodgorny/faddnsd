@@ -1,6 +1,6 @@
 #!/usr/bin/python2
 
-__version__ = '1.3'
+__version__ = '1.4'
 
 import sys
 import socket
