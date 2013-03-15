@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from __future__ import division, print_function
+
 __version__ = '0.1'
 
 import sys
@@ -14,11 +16,11 @@ def check_zone(zone, fn):
 	try:
 		out = subprocess.check_output(cmd, shell=True)
 	except subprocess.CalledProcessError:
-		print cmd
+		print(cmd)
 		return False
 	#endtry
 
-	print out
+	print(out)
 	return True
 #enddef
 
@@ -62,11 +64,11 @@ def main():
 	#endfor
 
 	if not changes:
-		print 'no change files found, doing nothing'
+		print('no change files found, doing nothing')
 		return
 	#endif
 
-	for i in changes: print i.host, i.domain, i.addrs
+	for i in changes: print(i.host, i.domain, i.addrs)
 	
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
 	subprocess.call(cmd, shell=True)
@@ -86,7 +88,7 @@ def main():
 
 				serial_done = True
 
-				print 'serial: %s -> %s' % (serial, serial+1)
+				print('serial: %s -> %s' % (serial, serial+1))
 			#endif
 
 			continue
@@ -108,18 +110,18 @@ def main():
 
 		m = re.match('(\S+)\t(\S+)\t(\S+)\t(\S+)', line)
 		if not m:
-			print 'record for \'%s\' in wrong format, skipping' % line
+			print('record for \'%s\' in wrong format, skipping' % line)
 			out_file.write(line)
 			continue
 		#endif
 
 		if change.processed: continue
 
-		print 'updating %s' % change.host
+		print('updating %s' % change.host)
 
 		#m_host, m_ttl, m_typ, m_addr = m.groups()
-		#print m
-		#print m.groups()
+		#print(m)
+		#print(m.groups())
 
 		out = ''
 		for af,a in change.addrs:
@@ -128,7 +130,7 @@ def main():
 			elif af == 'inet6':
 				af = 'aaaa'
 			else:
-				print 'unsupported record type %s' % af
+				print('unsupported record type %s' % af)
 				continue
 			#endif
 
@@ -137,14 +139,14 @@ def main():
 			af = af.upper()
 
 			out += '%s\t%s\t%s\t%s ; %s\n' % (host, ttl, af, a, change.datetime)
-			print '%s %s' % (af, a)
+			print('%s %s' % (af, a))
 		#endfor
 
 		if out:
 			out_file.write(out)
 			change.processed = True
 		else:
-			print 'change contains no usable data, keeping old record'
+			print('change contains no usable data, keeping old record')
 			out_file.write(line)
 		#endif
 
@@ -154,7 +156,7 @@ def main():
 	out_file.close()
 
 	if not check_zone(zone, out_fn):
-		print 'zone check error!'
+		print('zone check error!')
 		return
 	#endif
 
@@ -170,7 +172,7 @@ def main():
 			continue
 		#endif
 
-		print '%s not processed!' % c.host
+		print('%s not processed!' % c.host)
 	#endfor
 #enddef
 
