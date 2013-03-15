@@ -1,5 +1,7 @@
 #!/usr/bin/python2
 
+from __future__ import division, print_function
+
 __version__ = '1.5'
 
 import sys
@@ -74,7 +76,7 @@ cfg = Config()
 
 # TODO: this is disabled because it does not work when compiled as windows application
 def call_old(cmd):
-	log.log('calling: %s' % cmd)
+	log.debug('calling: %s' % cmd)
 	
 	import subprocess
 
@@ -89,7 +91,7 @@ def call_old(cmd):
 #enddef
 
 def call(cmd):
-	log.log('calling: %s' % cmd)
+	log.debug('calling: %s' % cmd)
 
 	import os
 	f = os.popen(cmd)
@@ -102,7 +104,7 @@ def get_addrs_windows():
 	lines = call('netsh interface ipv6 show address')
 
 	for line in lines.split('\n'):
-		print line
+		print(line)
 		if 'Temporary' in line: continue
 
 		for word in line.split():
@@ -153,7 +155,7 @@ def get_addrs_linux():
 		elif 'inet' in addr_type:
 			addr_type = 'inet'
 		else:
-			log.log('unknown address type!')
+			log.error('unknown address type!')
 		#endif
 
 		try:
@@ -179,14 +181,14 @@ def get_addrs_linux():
 
 class XMLRPCServer(object):
 	def exit(self):
-		log.log('xmlrcp: exit')
+		log.debug('xmlrcp: exit')
 		global _run
 		_run = False
 	#enddef
 #endclass
 
 def init_xmlrpc():
-	log.log('starting xmlrpc')
+	log.debug('starting xmlrpc')
 
 	server = SimpleXMLRPCServer(('localhost', 8889), allow_none=True, logRequests=False)
 	server.register_introspection_functions()
@@ -199,12 +201,12 @@ def init_xmlrpc():
 #enddef
 
 def main():
-	log.log('*' * 40)
-	log.log('starting nsupdate v%s' %  __version__)
+	log.info('*' * 40)
+	log.info('starting nsupdate v%s' %  __version__)
 
 	for fn in (os.path.expanduser('~/.nsupdate.conf'), 'nsupdate.ini', '/etc/nsupdate.conf'):
 		if not os.path.isfile(fn): continue
-		log.log('reading configuration from %s' % fn)
+		log.info('reading configuration from %s' % fn)
 		cfg.read_from_ini(fn)
 		break
 	#endfor
@@ -212,20 +214,20 @@ def main():
 	cfg.getopt(sys.argv[1:])
 	err = cfg.check()
 	if err:
-		log.log(err)
+		log.critical(err)
 		return
 	#endif
 	
-	log.log('%s' % cfg)
+	log.info('%s' % cfg)
 
 	if sys.platform == 'win32':
-		log.log('detected win32')
+		log.info('detected win32')
 		get_addrs = get_addrs_windows
 	elif sys.platform == 'linux2':
-		log.log('detected linux2')
+		log.info('detected linux2')
 		get_addrs = get_addrs_linux
 	else:
-		log.log('unknown platform!')
+		log.critical('unknown platform!')
 		return
 	#endif
 	
@@ -239,7 +241,7 @@ def main():
 			t = time.time()
 
 			addrs = get_addrs()
-			log.log(str(addrs))
+			log.debug(str(addrs))
 
 			for url in cfg.url_prefix:
 				# TODO: for the next version?
@@ -250,7 +252,7 @@ def main():
 				#	r = ','.join(r)
 				#	recs.append(r)
 				#endfor
-				#log.log('recs = %s' % recs)
+				#log.debug('recs = %s' % recs)
 
 				a = {'ether': [], 'inet': [], 'inet6': []}
 				for i in addrs:
@@ -267,24 +269,24 @@ def main():
 				d.update(a)
 				url += '?' + urllib.urlencode(d, True)
 
-				log.log(url)
+				log.debug(url)
 
 				try:
 					u = urllib2.urlopen(url)
 
 					if 'OK' in ''.join(u):
-						log.log('OK')
+						log.debug('OK')
 					else:
-						log.log('NOT OK')
-						for i in u: log.log(i.strip())
+						log.warning('NOT OK')
+						for i in u: log.warning(i.strip())
 					#endif
 				except urllib2.URLError:
-					log.log('urllib2.urlopen() exception, probably failed to connect')
+					log.error('urllib2.urlopen() exception, probably failed to connect')
 					#log.log_exc()
 				#endtry
 			#endfor
 
-			log.log('sleeping for %ss' % cfg.interval)
+			log.debug('sleeping for %ss' % cfg.interval)
 			while time.time() - t < cfg.interval:
 				if not _run: break
 
@@ -295,10 +297,10 @@ def main():
 			#endwhile
 		#endwhile
 	except KeyboardInterrupt:
-		log.log('keyboard interrupt!')
+		log.debug('keyboard interrupt!')
 	#endtry
 	
-	log.log('exited main loop')
+	log.debug('exited main loop')
 #enddef
 
 if __name__ == '__main__': main()
