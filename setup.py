@@ -23,7 +23,7 @@ setup(
 	name = 'dnsupdater',
 	version = __version__,
 	#modules = ['nsupdate.py'],
-	scripts = ['nsupdate.py'],
+	scripts = ['nsupdate'],
 	data_files = [
 		('/etc', ['nsupdate.ini',]),
 	]
