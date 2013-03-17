@@ -6,7 +6,8 @@ __version__ = '1.5'
 
 import sys
 import socket
-import urllib, urllib2
+import urllib
+import urllib2
 import time
 import getopt
 import re
@@ -20,6 +21,7 @@ log.filename = 'nsupdate.log'
 
 # TODO: uglyyy!!!
 _run = True
+
 
 class Config:
 	def __init__(self):
@@ -41,7 +43,7 @@ class Config:
 
 	def getopt(self, argv):
 		opts, args = getopt.getopt(argv, 'd:h:i:u:', ('domain=', 'host=', 'interval=', 'url-prefix='))
-		for o,a in opts:
+		for o, a in opts:
 			if o in ('-d', '--domain'):
 				self.domain = a.lower()
 			elif o in ('-h', '--host'):
@@ -59,25 +61,26 @@ class Config:
 	def check(self):
 		if not self.domain: return 'domain not specified!'
 	#enddef
-	
+
 	# TODO: move this to some common module
 	def __str__(self):
 		l = []
 
-		for k,v in vars(self).items():
+		for k, v in vars(self).items():
 			l.append('%s=\'%s\'' % (k, v))
 		#endfor
 
 		return ', '.join(l)
-	#enddef 
+	#enddef
 #endclass
 
 cfg = Config()
 
+
 # TODO: this is disabled because it does not work when compiled as windows application
 def call_old(cmd):
 	log.debug('calling: %s' % cmd)
-	
+
 	import subprocess
 
 	try:
@@ -90,6 +93,7 @@ def call_old(cmd):
 	#endtry
 #enddef
 
+
 def call(cmd):
 	log.debug('calling: %s' % cmd)
 
@@ -97,6 +101,7 @@ def call(cmd):
 	f = os.popen(cmd)
 	return f.read()
 #enddef
+
 
 def get_addrs_windows():
 	ret = []
@@ -116,7 +121,7 @@ def get_addrs_windows():
 			ret.append({'af': 'inet6', 'a': word})
 		#endfor
 	#endfor
-	
+
 	lines = call('ipconfig /all')
 	for word in lines.split():
 		word = word.strip().lower()
@@ -125,9 +130,10 @@ def get_addrs_windows():
 		word = word.replace('-', ':')
 		ret.append({'af': 'ether', 'a': word})
 	#endfor
-	
+
 	return ret
 #enddef
+
 
 def get_addrs_linux():
 	ret = []
@@ -179,6 +185,7 @@ def get_addrs_linux():
 	return ret
 #enddef
 
+
 class XMLRPCServer(object):
 	def exit(self):
 		log.debug('xmlrcp: exit')
@@ -187,22 +194,24 @@ class XMLRPCServer(object):
 	#enddef
 #endclass
 
+
 def init_xmlrpc():
 	log.debug('starting xmlrpc')
 
 	server = SimpleXMLRPCServer(('localhost', 8889), allow_none=True, logRequests=False)
 	server.register_introspection_functions()
-	
+
 	s = XMLRPCServer()
 	server.register_instance(s)
-	
+
 	import thread
 	thread.start_new_thread(server.serve_forever, ())
 #enddef
 
+
 def main():
 	log.info('*' * 40)
-	log.info('starting nsupdate v%s' %  __version__)
+	log.info('starting nsupdate v%s' % __version__)
 
 	for fn in (os.path.expanduser('~/.nsupdate.conf'), 'nsupdate.ini', '/etc/nsupdate.conf'):
 		if not os.path.isfile(fn): continue
@@ -217,7 +226,7 @@ def main():
 		log.critical(err)
 		return
 	#endif
-	
+
 	log.info('%s' % cfg)
 
 	if sys.platform == 'win32':
@@ -230,10 +239,8 @@ def main():
 		log.critical('unknown platform!')
 		return
 	#endif
-	
-	init_xmlrpc()
 
-	addr_life = {}
+	init_xmlrpc()
 
 	try:
 		global _run
@@ -299,7 +306,7 @@ def main():
 	except KeyboardInterrupt:
 		log.debug('keyboard interrupt!')
 	#endtry
-	
+
 	log.debug('exited main loop')
 #enddef
 
