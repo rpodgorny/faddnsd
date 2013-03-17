@@ -1,5 +1,0 @@
-#!/bin/sh
-
-export PYTHONPATH=../pylib
-
-exec ./nsupdate.py $@
