@@ -1,0 +1,13 @@
+[Unit]
+Description=Asterix DNS Update Daemon
+After=network.target
+Wants=network.target
+
+[Service]
+ExecStart=/usr/bin/nsupdate
+#ExecReload=/bin/kill -HUP $MAINPID
+#StandardOutput=null
+#User=radek
+
+[Install]
+WantedBy=multi-user.target
