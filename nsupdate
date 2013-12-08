@@ -4,7 +4,7 @@
 Freakin' Awesome Dynamic DNS client.
 
 Usage:
-  faddnsc [options]
+  faddnsc [options] [(-u|--url-prefix=)<url-prefix>]...
 
 Options:
   -h, --help  Help.
@@ -12,42 +12,37 @@ Options:
               Debug level [default: INFO].
   -d, --domain=<domain>
               Domain [default: asterix.cz].
-  -h, --host=<host>
+  --host=<host>
               Host [default: current hostname].
   -i, --interval=<interval>
               Update interval (s) [default: 600].
-  -u, --url-prefix=<url-prefix>
-              URL prefix [default: http://podgorny.cz:8765/].
+  (-u|--url-prefix=)<url-prefix>
+              URL prefix.
 '''
 
 from version import __version__
 
 import sys
-import socket
-import urllib
-import urllib.request
-import urllib.error
-import urllib.parse
-import ipaddress
 import time
-import getopt
+import socket
 import re
 import os.path
 from configparser import ConfigParser
-import xmlrpc
+import docopt
+from nsupdate import *
 
 import log
 sys.excepthook = log.log_exception
-if sys.platform == 'win32':
-	log.filename = 'nsupdate.log'
-else:
-	log.filename = None
-#endif
-log.set_level(log.DEBUG)
 
 
-# TODO: uglyyy!!!
-_run = True
+def logging_setup(level):
+	if sys.platform == 'win32':
+		log.filename = 'nsupdate.log'
+	else:
+		log.filename = None
+	#endif
+	log.set_level(level)
+#enddef
 
 
 class Config:
@@ -55,7 +50,7 @@ class Config:
 		self.domain = None
 		self.host = socket.gethostname().lower()
 		self.interval = 600
-		self.url_prefix = []
+		self.url_prefix = ['http://podgorny.cz:8765/']
 	#enddef
 
 	def read_from_ini(self, fn):
@@ -66,23 +61,6 @@ class Config:
 		self.host = ini.get('General', 'Host', fallback=self.host)
 		self.interval = ini.getint('General', 'Interval', fallback=self.interval)
 		self.url_prefix = ini.get('General', 'UrlPrefix', fallback=self.url_prefix)
-	#enddef
-
-	def getopt(self, argv):
-		opts, args = getopt.getopt(argv, 'd:h:i:u:', ('domain=', 'host=', 'interval=', 'url-prefix='))
-		for o, a in opts:
-			if o in ('-d', '--domain'):
-				self.domain = a.lower()
-			elif o in ('-h', '--host'):
-				self.host = a.lower()
-			elif o in ('-i', '--interval'):
-				self.interval = int(a)
-			elif o in ('-u', '--url-prefix'):
-				self.url_prefix.append(a)
-			#endif
-		#endfor
-
-		if not self.url_prefix: self.url_prefix = ['http://podgorny.cz:8765/', ]
 	#enddef
 
 	def check(self):
@@ -104,142 +82,16 @@ class Config:
 cfg = Config()
 
 
-# TODO: this is disabled because it does not work when compiled as windows application
-def call_old(cmd):
-	log.debug('calling: %s' % cmd)
-
-	import subprocess
-
-	try:
-		return subprocess.check_output(cmd, shell=True)
-	except AttributeError:
-		# python < 2.7
-		p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-		p.wait()
-		return p.communicate()[0]
-	#endtry
-#enddef
-
-
-def call(cmd):
-	log.debug('calling: %s' % cmd)
-
-	import os
-	f = os.popen(cmd)
-	return f.read()
-#enddef
-
-
-def get_addrs_windows():
-	ret = []
-
-	lines = call('netsh interface ipv6 show address')
-
-	for line in lines.split('\n'):
-		print(line)
-		if 'Temporary' in line: continue
-
-		for word in line.split():
-			word = word.strip().lower()
-
-			if not ':' in word: continue
-			if not word.startswith('200'): continue
-
-			ret.append({'af': 'inet6', 'a': word})
-		#endfor
-	#endfor
-
-	lines = call('ipconfig /all')
-	for word in lines.split():
-		word = word.strip().lower()
-		if not re.match('..-..-..-..-..-..', word): continue
-
-		word = word.replace('-', ':')
-		ret.append({'af': 'ether', 'a': word})
-	#endfor
-
-	return ret
-#enddef
-
-
-def get_addrs_linux():
-	ret = []
-
-	lines = call('ip addr').split('\n')
-
-	for line in lines:
-		line = line.strip()
-
-		if not 'ether' in line \
-		and not 'inet' in line:
-			continue
-		#endif
-
-		if 'temporary' in line: continue
-
-		addr_type, addr, _ = line.split(' ', 2)
-		addr_type = addr_type.lower()
-		addr = addr.lower()
-
-		if 'ether' in addr_type:
-			addr_type = 'ether'
-		elif 'inet6' in addr_type:
-			addr_type = 'inet6'
-		elif 'inet' in addr_type:
-			addr_type = 'inet'
-		else:
-			log.error('unknown address type! (%s)' % addr_type)
-		#endif
-
-		try:
-			addr = addr.split('/')[0]
-		except: pass
-
-		if addr_type == 'ether':
-			if addr == '00:00:00:00:00:00': continue
-		elif addr_type == 'inet':
-			if ipaddress.ip_address(addr).is_private: continue
-			if ipaddress.ip_address(addr).is_loopback: continue
-			if ipaddress.ip_address(addr).is_link_local: continue
-		elif addr_type == 'inet6':
-			if ipaddress.ip_address(addr).is_private: continue
-			if ipaddress.ip_address(addr).is_loopback: continue
-			if ipaddress.ip_address(addr).is_link_local: continue
-		#endif
-
-		ret.append({'af': addr_type, 'a': addr})
-	#endfor
-
-	return ret
-#enddef
-
-
-class XMLRPCServer(object):
-	def exit(self):
-		log.debug('xmlrcp: exit')
-		global _run
-		_run = False
-	#enddef
-#endclass
-
-
-def init_xmlrpc():
-	log.debug('starting xmlrpc')
-
-	server = xmlrpc.server(('localhost', 8889), allow_none=True, logRequests=False)
-	server.register_introspection_functions()
-
-	s = XMLRPCServer()
-	server.register_instance(s)
-
-	import thread
-	thread.start_new_thread(server.serve_forever, ())
-#enddef
-
-
 def main():
+	args = docopt.docopt(__doc__, version=__version__)
+
+	log_level = args['--log-level']
+	logging_setup(log_level)
+
 	log.info('*' * 40)
 	log.info('starting nsupdate v%s' % __version__)
+
+	log.debug(str(args))
 
 	for fn in (os.path.expanduser('~/.nsupdate.conf'), 'nsupdate.ini', '/etc/nsupdate.conf'):
 		if not os.path.isfile(fn): continue
@@ -248,7 +100,11 @@ def main():
 		break
 	#endfor
 
-	cfg.getopt(sys.argv[1:])
+	if args['--domain']: cfg.domain = args['--domain']
+	if args['--host']: cfg.host = args['--host']
+	if args['--interval']: cfg.interval = float(args['--interval'])
+	if args['--url-prefix']: cfg.url_prefix = args['--url-prefix']
+
 	err = cfg.check()
 	if err:
 		log.critical(err)
@@ -260,70 +116,28 @@ def main():
 	if sys.platform == 'win32':
 		log.info('detected win32')
 		get_addrs = get_addrs_windows
-		init_xmlrpc()
 	elif sys.platform.startswith('linux'):
 		log.info('detected linux')
 		get_addrs = get_addrs_linux
 	else:
-		log.critical('unknown platform!')
+		log.critical('unknown platform! (%s)' % sys.platform)
 		return
 	#endif
 
 	try:
-		global _run
-		while _run:
+		while 1:
 			t = time.time()
 
 			addrs = get_addrs()
 			log.debug(str(addrs))
 
-			for url in cfg.url_prefix:
-				# TODO: for the next version?
-				#recs = []
-				#for i in addrs:
-				#	r = []
-				#	for k,v in i.items(): r.append('%s=%s' % (k, v))
-				#	r = ','.join(r)
-				#	recs.append(r)
-				#endfor
-				#log.debug('recs = %s' % recs)
-
-				a = {'ether': [], 'inet': [], 'inet6': []}
-				for i in addrs:
-					if not i['af'] in a: continue
-					a[i['af']].append(i['a'])
-				#endfor
-
-				d = {
-					'version': __version__,
-					'host': cfg.host,
-					'domain': cfg.domain,
-					#'records': recs
-				}
-				d.update(a)
-				url += '?' + urllib.parse.urlencode(d, True)
-
-				log.debug(url)
-
-				try:
-					u = urllib.request.urlopen(url).read().decode('utf-8')
-
-					if 'OK' in ''.join(u):
-						log.debug('OK')
-					else:
-						log.warning('NOT OK')
-						for i in u: log.warning(i.strip())
-					#endif
-				except urllib.error.URLError:
-					log.error('urllib.request.urlopen() exception, probably failed to connect')
-					log.log_exc()
-				#endtry
+			for url_prefix in cfg.url_prefix:
+				log.debug('sending info to %s' % url_prefix)
+				send_addrs(url_prefix, cfg.host, cfg.domain, __version__, addrs)
 			#endfor
 
 			log.debug('sleeping for %ss' % cfg.interval)
 			while time.time() - t < cfg.interval:
-				if not _run: break
-
 				# had to add this shit because of the weird 'function call interrupted' behaviour on windows
 				try: time.sleep(1)
 				except KeyboardInterrupt: raise
