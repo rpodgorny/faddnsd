@@ -1,19 +1,40 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
-from __future__ import division, print_function
+'''
+Freakin' Awesome Dynamic DNS client.
+
+Usage:
+  faddnsc [options]
+
+Options:
+  -h, --help  Help.
+  --log-level DEBUG | INFO | WARNING | ERROR
+              Debug level [default: INFO].
+  -d, --domain=<domain>
+              Domain [default: asterix.cz].
+  -h, --host=<host>
+              Host [default: current hostname].
+  -i, --interval=<interval>
+              Update interval (s) [default: 600].
+  -u, --url-prefix=<url-prefix>
+              URL prefix [default: http://podgorny.cz:8765/].
+'''
 
 from version import __version__
 
 import sys
 import socket
 import urllib
-import urllib2
+import urllib.request
+import urllib.error
+import urllib.parse
+import ipaddress
 import time
 import getopt
 import re
 import os.path
-from iniparser import IniParser
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+from configparser import ConfigParser
+import xmlrpc
 
 import log
 sys.excepthook = log.log_exception
@@ -22,7 +43,7 @@ if sys.platform == 'win32':
 else:
 	log.filename = None
 #endif
-log.set_level(log.INFO)
+log.set_level(log.DEBUG)
 
 
 # TODO: uglyyy!!!
@@ -38,13 +59,13 @@ class Config:
 	#enddef
 
 	def read_from_ini(self, fn):
-		ini = IniParser()
+		ini = ConfigParser()
 		ini.read(fn)
 
-		self.domain = ini.get('General', 'Domain', self.domain)
-		self.host = ini.get('General', 'Host', self.host)
-		self.interval = ini.getint('General', 'Interval', self.interval)
-		self.url_prefix = ini.get('General', 'UrlPrefix', self.url_prefix)
+		self.domain = ini.get('General', 'Domain', fallback=self.domain)
+		self.host = ini.get('General', 'Host', fallback=self.host)
+		self.interval = ini.getint('General', 'Interval', fallback=self.interval)
+		self.url_prefix = ini.get('General', 'UrlPrefix', fallback=self.url_prefix)
 	#enddef
 
 	def getopt(self, argv):
@@ -167,7 +188,7 @@ def get_addrs_linux():
 		elif 'inet' in addr_type:
 			addr_type = 'inet'
 		else:
-			log.error('unknown address type!')
+			log.error('unknown address type! (%s)' % addr_type)
 		#endif
 
 		try:
@@ -177,12 +198,13 @@ def get_addrs_linux():
 		if addr_type == 'ether':
 			if addr == '00:00:00:00:00:00': continue
 		elif addr_type == 'inet':
-			if addr.startswith('127.'): continue
-			if addr.startswith('10.'): continue
-			if addr.startswith('192.168.'): continue
+			if ipaddress.ip_address(addr).is_private: continue
+			if ipaddress.ip_address(addr).is_loopback: continue
+			if ipaddress.ip_address(addr).is_link_local: continue
 		elif addr_type == 'inet6':
-			if addr.startswith('::1'): continue
-			if addr.startswith('fe80:'): continue
+			if ipaddress.ip_address(addr).is_private: continue
+			if ipaddress.ip_address(addr).is_loopback: continue
+			if ipaddress.ip_address(addr).is_link_local: continue
 		#endif
 
 		ret.append({'af': addr_type, 'a': addr})
@@ -204,7 +226,7 @@ class XMLRPCServer(object):
 def init_xmlrpc():
 	log.debug('starting xmlrpc')
 
-	server = SimpleXMLRPCServer(('localhost', 8889), allow_none=True, logRequests=False)
+	server = xmlrpc.server(('localhost', 8889), allow_none=True, logRequests=False)
 	server.register_introspection_functions()
 
 	s = XMLRPCServer()
@@ -239,8 +261,8 @@ def main():
 		log.info('detected win32')
 		get_addrs = get_addrs_windows
 		init_xmlrpc()
-	elif sys.platform == 'linux2':
-		log.info('detected linux2')
+	elif sys.platform.startswith('linux'):
+		log.info('detected linux')
 		get_addrs = get_addrs_linux
 	else:
 		log.critical('unknown platform!')
@@ -279,12 +301,12 @@ def main():
 					#'records': recs
 				}
 				d.update(a)
-				url += '?' + urllib.urlencode(d, True)
+				url += '?' + urllib.parse.urlencode(d, True)
 
 				log.debug(url)
 
 				try:
-					u = urllib2.urlopen(url)
+					u = urllib.request.urlopen(url).read().decode('utf-8')
 
 					if 'OK' in ''.join(u):
 						log.debug('OK')
@@ -292,9 +314,9 @@ def main():
 						log.warning('NOT OK')
 						for i in u: log.warning(i.strip())
 					#endif
-				except urllib2.URLError:
-					log.error('urllib2.urlopen() exception, probably failed to connect')
-					#log.log_exc()
+				except urllib.error.URLError:
+					log.error('urllib.request.urlopen() exception, probably failed to connect')
+					log.log_exc()
 				#endtry
 			#endfor
 
