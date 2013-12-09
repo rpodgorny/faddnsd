@@ -1,19 +1,12 @@
 #!/usr/bin/python3
 
 
-import socket
 import urllib
 import urllib.request
 import urllib.error
 import urllib.parse
 import ipaddress
-import re
-import os.path
 import logging
-
-
-# TODO: uglyyy!!!
-_run = True
 
 
 def call(cmd):
