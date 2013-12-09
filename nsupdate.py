@@ -9,8 +9,7 @@ import urllib.parse
 import ipaddress
 import re
 import os.path
-
-import log
+import logging
 
 
 # TODO: uglyyy!!!
@@ -18,11 +17,13 @@ _run = True
 
 
 def call(cmd):
-	log.debug('calling: %s' % cmd)
+	logging.debug('calling: %s' % cmd)
 
 	import os
 	f = os.popen(cmd)
-	return f.read()
+	ret = f.read()
+	f.close()
+	return ret
 #enddef
 
 
@@ -84,7 +85,7 @@ def get_addrs_linux():
 		elif 'inet' in addr_type:
 			addr_type = 'inet'
 		else:
-			log.error('unknown address type! (%s)' % addr_type)
+			logging.error('unknown address type! (%s)' % addr_type)
 		#endif
 
 		try:
@@ -119,7 +120,7 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 	#	r = ','.join(r)
 	#	recs.append(r)
 	#endfor
-	#log.debug('recs = %s' % recs)
+	#logging.debug('recs = %s' % recs)
 
 	a = {'ether': [], 'inet': [], 'inet6': []}
 	for i in addrs:
@@ -136,19 +137,19 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 	d.update(a)
 	url = '%s?%s' % (url_prefix, urllib.parse.urlencode(d, True))
 
-	log.debug(url)
+	logging.debug(url)
 
 	try:
 		u = urllib.request.urlopen(url).read().decode('utf-8')
 
 		if 'OK' in ''.join(u):
-			log.debug('OK')
+			logging.debug('OK')
 		else:
-			log.warning('NOT OK')
-			for i in u: log.warning(i.strip())
+			logging.warning('NOT OK')
+			for i in u: logging.warning(i.strip())
 		#endif
 	except urllib.error.URLError:
-		log.error('urllib.request.urlopen() exception, probably failed to connect')
-		log.log_exc()
+		logging.error('urllib.request.urlopen() exception, probably failed to connect')
+		logging.log_exc()
 	#endtry
 #enddef

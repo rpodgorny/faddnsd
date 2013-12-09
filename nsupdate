@@ -31,17 +31,18 @@ from configparser import ConfigParser
 import docopt
 from nsupdate import *
 
-import log
-sys.excepthook = log.log_exception
+import logging
+#sys.excepthook = log.log_exception
 
 
 def logging_setup(level):
 	if sys.platform == 'win32':
-		log.filename = 'nsupdate.log'
+		fn = 'nsupdate.log'
 	else:
-		log.filename = None
+		fn = None
 	#endif
-	log.set_level(level)
+
+	logging.basicConfig(filename=fn, level=level)
 #enddef
 
 
@@ -88,14 +89,14 @@ def main():
 	log_level = args['--log-level']
 	logging_setup(log_level)
 
-	log.info('*' * 40)
-	log.info('starting nsupdate v%s' % __version__)
+	logging.info('*' * 40)
+	logging.info('starting nsupdate v%s' % __version__)
 
-	log.debug(str(args))
+	logging.debug(str(args))
 
 	for fn in (os.path.expanduser('~/.nsupdate.conf'), 'nsupdate.ini', '/etc/nsupdate.conf'):
 		if not os.path.isfile(fn): continue
-		log.info('reading configuration from %s' % fn)
+		logging.info('reading configuration from %s' % fn)
 		cfg.read_from_ini(fn)
 		break
 	#endfor
@@ -107,20 +108,20 @@ def main():
 
 	err = cfg.check()
 	if err:
-		log.critical(err)
+		logging.critical(err)
 		return
 	#endif
 
-	log.info('%s' % cfg)
+	logging.info('%s' % cfg)
 
 	if sys.platform == 'win32':
-		log.info('detected win32')
+		logging.info('detected win32')
 		get_addrs = get_addrs_windows
 	elif sys.platform.startswith('linux'):
-		log.info('detected linux')
+		logging.info('detected linux')
 		get_addrs = get_addrs_linux
 	else:
-		log.critical('unknown platform! (%s)' % sys.platform)
+		logging.critical('unknown platform! (%s)' % sys.platform)
 		return
 	#endif
 
@@ -129,14 +130,14 @@ def main():
 			t = time.time()
 
 			addrs = get_addrs()
-			log.debug(str(addrs))
+			logging.debug(str(addrs))
 
 			for url_prefix in cfg.url_prefix:
-				log.debug('sending info to %s' % url_prefix)
+				logging.debug('sending info to %s' % url_prefix)
 				send_addrs(url_prefix, cfg.host, cfg.domain, __version__, addrs)
 			#endfor
 
-			log.debug('sleeping for %ss' % cfg.interval)
+			logging.debug('sleeping for %ss' % cfg.interval)
 			while time.time() - t < cfg.interval:
 				# had to add this shit because of the weird 'function call interrupted' behaviour on windows
 				try: time.sleep(1)
@@ -145,10 +146,10 @@ def main():
 			#endwhile
 		#endwhile
 	except KeyboardInterrupt:
-		log.debug('keyboard interrupt!')
+		logging.debug('keyboard interrupt!')
 	#endtry
 
-	log.debug('exited main loop')
+	logging.debug('exited main loop')
 #enddef
 
 if __name__ == '__main__': main()
