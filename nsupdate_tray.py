@@ -1,55 +1,34 @@
+#!/usr/bin/python3
+
 from version import __version__
 
 import sys
-import wx
-import xmlrpclib
+from PySide.QtCore import *
+from PySide.QtGui import *
+import logging
 
-import log
-sys.excepthook = log.log_exception
-log.filename = 'nsupdate_tray.log'
 
-_exit = False
+def logging_setup():
+	logging.basicConfig(level='DEBUG')
+#enddef
 
-class Tray(wx.TaskBarIcon):
-	def CreatePopupMenu(self):
-		menu = wx.Menu()
-		menu.Append(123, 'exit')
-		self.Bind(wx.EVT_MENU, self.on_exit, id=123)
-		return menu
-	#enddef
-
-	def on_exit(self, e):
-		log.log('clicked exit')
-
-		try:
-			_s.exit()
-		except:
-			log.log('failed to call remote exit')
-		#endtry
-
-		wx.GetApp().ExitMainLoop()
-	#enddef
-#endclass
 
 def main():
-	log.log('*' * 40)
-	log.log('starting nsupdate tray v%s' % __version__)
+	logging_setup()
 
-	global _s
-	_s = xmlrpclib.ServerProxy('http://localhost:8889')
+	logging.info('*' * 40)
+	logging.info('starting nsupdate tray v%s' % __version__)
 
-	app = wx.App(0)
+	app = QApplication(sys.argv[1:])
 
-	tb = Tray()
+	icon = QIcon('nsupdate.png')
+	tray = QSystemTrayIcon(icon)
 
-	log.log('loading icon')
-	icon = wx.Icon('nsupdate.png', wx.BITMAP_TYPE_PNG)
-	tb.SetIcon(icon, 'nsupdate')
+	app.exec_()
 
-	log.log('starting MainLoop')
-	app.MainLoop()
-	log.log('exited MainLoop')
+	logging.info('done')
 #enddef
+
 
 if __name__ == '__main__':
 	main()
