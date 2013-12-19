@@ -125,6 +125,8 @@ def main():
 		return
 	#endif
 
+	addrs_old = None
+
 	try:
 		while 1:
 			t = time.time()
@@ -132,10 +134,21 @@ def main():
 			addrs = get_addrs()
 			logging.debug(str(addrs))
 
-			for url_prefix in cfg.url_prefix:
-				logging.debug('sending info to %s' % url_prefix)
-				send_addrs(url_prefix, cfg.host, cfg.domain, __version__, addrs)
-			#endfor
+			if addrs != addrs_old:
+				all_ok = True
+				for url_prefix in cfg.url_prefix:
+					logging.debug('sending info to %s' % url_prefix)
+					if not send_addrs(url_prefix, cfg.host, cfg.domain, __version__, addrs):
+						all_ok = False
+					#endif
+				#endfor
+
+				if all_ok:
+					addrs_old = addrs
+				#endif
+			else:
+				logging.debug('no change, doing nothing')
+			#endif
 
 			logging.debug('sleeping for %ss' % cfg.interval)
 			while time.time() - t < cfg.interval:
