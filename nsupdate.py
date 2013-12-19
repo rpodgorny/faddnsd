@@ -21,7 +21,7 @@ def call(cmd):
 
 
 def get_addrs_windows():
-	ret = []
+	ret = {} 
 
 	lines = call('netsh interface ipv6 show address')
 
@@ -35,7 +35,8 @@ def get_addrs_windows():
 			if not ':' in word: continue
 			if not word.startswith('200'): continue
 
-			ret.append({'af': 'inet6', 'a': word})
+			if not 'inet6' in ret: ret['inet6'] = set()
+			ret['inet6'].add(word)
 		#endfor
 	#endfor
 
@@ -45,7 +46,9 @@ def get_addrs_windows():
 		if not re.match('..-..-..-..-..-..', word): continue
 
 		word = word.replace('-', ':')
-		ret.append({'af': 'ether', 'a': word})
+
+		if not 'ether' in ret: ret['ether'] = set()
+		ret['ether'].add(word)
 	#endfor
 
 	return ret
@@ -53,7 +56,7 @@ def get_addrs_windows():
 
 
 def get_addrs_linux():
-	ret = []
+	ret = {} 
 
 	lines = call('ip addr').split('\n')
 
@@ -97,7 +100,8 @@ def get_addrs_linux():
 			if ipaddress.ip_address(addr).is_link_local: continue
 		#endif
 
-		ret.append({'af': addr_type, 'a': addr})
+		if not addr_type in ret: ret[addr_type] = set()
+		ret[addr_type].add(addr)
 	#endfor
 
 	return ret
@@ -115,19 +119,13 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 	#endfor
 	#logging.debug('recs = %s' % recs)
 
-	a = {'ether': [], 'inet': [], 'inet6': []}
-	for i in addrs:
-		if not i['af'] in a: continue
-		a[i['af']].append(i['a'])
-	#endfor
-
 	d = {
 		'version': version,
 		'host': host,
 		'domain': domain,
 		#'records': recs
 	}
-	d.update(a)
+	d.update(addrs)
 	url = '%s?%s' % (url_prefix, urllib.parse.urlencode(d, True))
 
 	logging.debug(url)
@@ -137,6 +135,7 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 
 		if 'OK' in ''.join(u):
 			logging.debug('OK')
+			return True
 		else:
 			logging.warning('NOT OK')
 			for i in u: logging.warning(i.strip())
@@ -145,4 +144,6 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 		logging.error('urllib.request.urlopen() exception, probably failed to connect')
 		logging.log_exc()
 	#endtry
+
+	return False
 #enddef
