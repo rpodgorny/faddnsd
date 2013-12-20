@@ -15,6 +15,8 @@ class MyTray(QSystemTrayIcon):
 
 		self.app = app
 
+		self.setToolTip('nsupdate v%s' % __version__)
+
 		menu = QMenu()
 		menu.addAction('Force refresh', self.on_refresh)
 		menu.addAction('Exit', self.on_exit)
