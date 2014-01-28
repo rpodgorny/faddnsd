@@ -119,6 +119,8 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 	#endfor
 	#logging.debug('recs = %s' % recs)
 
+	logging.debug('sending info to %s' % url_prefix)
+
 	d = {
 		'version': version,
 		'host': host,
@@ -137,12 +139,11 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 			logging.debug('OK')
 			return True
 		else:
-			logging.warning('NOT OK')
+			logging.warning('got NOT OK')
 			for i in u: logging.warning(i.strip())
 		#endif
 	except urllib.error.URLError:
-		logging.error('urllib.request.urlopen() exception, probably failed to connect')
-		logging.log_exc()
+		logging.exception('urllib.request.urlopen() exception, probably failed to connect')
 	#endtry
 
 	return False
