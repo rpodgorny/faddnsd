@@ -22,7 +22,7 @@ def check_zone(zone, fn):
 	cmd = 'named-checkzone %s %s' % (zone, fn) 
 
 	try:
-		out = subprocess.check_output(cmd, shell=True)
+		out = subprocess.check_output(cmd, shell=True).decode()
 	except subprocess.CalledProcessError:
 		logging.exception(cmd)
 		return False
@@ -88,7 +88,7 @@ def main():
 	#endif
 
 	for i in changes:
-		logging.debug(i.host, i.domain, i.addrs)
+		logging.debug('%s %s %s' % (i.host, i.domain, i.addrs))
 	#endfor
 	
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
