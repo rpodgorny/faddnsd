@@ -11,11 +11,11 @@ Options:
   --log-level DEBUG | INFO | WARNING | ERROR
               Debug level [default: INFO].
   -d, --domain=<domain>
-              Domain [default: asterix.cz].
+              Domain to subscribe to.
   --host=<host>
-              Host [default: current hostname].
+              Hostname to report.
   -i, --interval=<interval>
-              Update interval (s) [default: 600].
+              Update interval (s).
   (-u|--url-prefix=)<url-prefix>
               URL prefix.
 '''
