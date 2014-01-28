@@ -7,7 +7,7 @@ Usage:
   faddnsd [options]
 
 Options:
-  -p <port>  Port number.
+  -p <port>, --port=<port>  Port number.
 '''
 
 __version__ = '0.0'
@@ -21,7 +21,7 @@ import docopt
 
 
 class NsUpdateServer(object):
-	def __init__(path_prefix):
+	def __init__(self, path_prefix):
 		self.path_prefix = path_prefix
 	#enddef
 
@@ -69,9 +69,9 @@ def logging_setup(level):
 
 def main():
 	args = docopt.docopt(__doc__, version=__version__)
-
+	 
 	path_prefix = '/tmp'
-	port = int(args['<port>'])
+	port = int(args['--port'])
 
 	logging_setup('DEBUG')
 
