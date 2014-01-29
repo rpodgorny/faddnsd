@@ -28,20 +28,14 @@ class NsUpdateServer(object):
 
 	@cherrypy.expose
 	def index(self, version=None, host=None, domain=None, *args, **kwargs):
-		dt = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
-		remote_addr = cherrypy.request.remote.ip
+		rec = {}
+		rec['version'] = version
+		rec['host'] = host
+		rec['domain'] = domain
+		rec['datetime'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+		rec['remote_addr'] = cherrypy.request.remote.ip
 
-		dn = '%s/%s' % (self.path_prefix, domain)
-		if not os.path.isdir(dn):
-			os.mkdir(dn)
-		#endif
-
-		fn = '%s/%s' % (dn, host)
-		f = open(fn, 'w')
-
-		f.write('%s %s %s\n' % (version, dt, remote_addr))
-		f.write('%s %s\n' % (host, domain))
-
+		rec['addrs'] = []
 		for af in 'ether', 'inet', 'inet6':
 			if not af in kwargs: continue
 
@@ -52,10 +46,18 @@ class NsUpdateServer(object):
 			#endif
 
 			for a in addrs:
-				f.write('%s %s\n' % (af, a))
+				rec['addrs'].append({'af': af, 'a': a})
 			#endfor
 		#endfor
 
+		dn = '%s/%s' % (self.path_prefix, domain)
+		if not os.path.isdir(dn):
+			os.mkdir(dn)
+		#endif
+
+		fn = '%s/%s' % (dn, host)
+		f = open(fn, 'w')
+		f.write(json.dumps(rec))
 		f.close()
 
 		return 'OK'

@@ -16,6 +16,7 @@ import subprocess
 import os
 import logging
 import docopt
+import json
 
 
 def check_zone(zone, fn):
@@ -35,7 +36,7 @@ def check_zone(zone, fn):
 
 class Change:
 	def __init__(self):
-		self.ttl = '1h'
+		self.ttl = '10m'
 		self.processed = False
 	#enddef
 
@@ -43,16 +44,15 @@ class Change:
 		self.fn = fn
 
 		f = open(fn, 'r')
-		self.version, self.datetime, self.remote_addr = f.readline().split()
-		self.host, self.domain = f.readline().split()
-
-		self.addrs = []
-		for line in f:
-			af, a = line.split()
-			self.addrs.append((af, a))
-		#endfor
-
+		rec = json.loads(f.read())
 		f.close()
+
+		self.version = rec['version']
+		self.datetime = rec['datetime']
+		self.remote_addr = rec['remote_addr']
+		self.host = rec['host']
+		self.domain = rec['domain']
+		self.addrs = rec['addrs']
 	#enddef
 #endclass
 
@@ -121,7 +121,10 @@ def update_zone(zone, zone_fn, changes):
 		#logging.debug(m.groups())
 
 		out = ''
-		for af,a in change.addrs:
+		for af_a in change.addrs:
+			af = af_a['af']
+			a = af_a['a']
+
 			if af == 'inet':
 				af = 'a'
 			elif af == 'inet6':
