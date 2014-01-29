@@ -62,10 +62,8 @@ def logging_setup(level):
 #enddef
 
 
-def update_zone(zone, zone_fn, changes):
+def update_zone(zone_fn, out_fn, changes):
 	serial_done = False
-
-	out_fn = '/tmp/tmp.zone' # TODO: rename variable and make the value random
 
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
 	subprocess.call(cmd, shell=True)
@@ -94,7 +92,6 @@ def update_zone(zone, zone_fn, changes):
 		change = None
 		for i in changes:
 			if not line.startswith(i.host+'\t'): continue
-			if i.domain != zone: continue
 			change = i
 			break
 		#endfor
@@ -153,17 +150,6 @@ def update_zone(zone, zone_fn, changes):
 
 	zone_file.close()
 	out_file.close()
-
-	if not check_zone(zone, out_fn):
-		logging.error('zone check error!')
-		return
-	#endif
-
-	cmd = 'mv %s %s' % (out_fn, zone_fn)
-	subprocess.call(cmd, shell=True)
-
-	cmd = 'rndc reload %s' % zone
-	subprocess.call(cmd, shell=True)
 #enddef
 
 
@@ -173,6 +159,7 @@ def main():
 	zone = args['<zone>']
 	zone_fn = args['<zone_fn>']
 	changes_dir = args['<changes_dir>']
+	out_fn = '/tmp/%s.zone_tmp' % zone
 
 	logging_setup('DEBUG')
 
@@ -180,6 +167,7 @@ def main():
 	for i in glob.glob(changes_dir+'/*'):
 		c = Change()
 		c.read_from_file(i)
+		if c.domain != zone: continue
 		changes.append(c)
 	#endfor
 
@@ -192,7 +180,18 @@ def main():
 		logging.debug('%s %s %s' % (i.host, i.domain, i.addrs))
 	#endfor
 	
-	update_zone(zone, zone_fn, changes)
+	update_zone(zone_fn, out_fn, changes)
+
+	if not check_zone(zone, out_fn):
+		logging.error('zone check error!')
+		return
+	#endif
+
+	cmd = 'mv %s %s' % (out_fn, zone_fn)
+	subprocess.call(cmd, shell=True)
+
+	cmd = 'rndc reload %s' % zone
+	subprocess.call(cmd, shell=True)
 
 	for c in changes:
 		if c.processed:
