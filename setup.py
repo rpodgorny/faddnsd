@@ -1,31 +1,36 @@
-from distutils.core import setup
-import py2exe
+from cx_Freeze import setup, Executable
 
 from version import __version__
 
 
-setup(
-	console = ['nsupdate', ],
-	version = __version__,
-	zipfile = None,
-	options = {'py2exe': {'bundle_files': 1}}
-)
+base = None
+import sys
+if sys.platform == 'win32': base = 'Win32GUI'
 
 setup(
-	windows = ['nsupdate_tray.py', ],
+	name = 'faddns',
 	version = __version__,
-	zipfile = None,
-	options = {'py2exe': {'bundle_files': 1}}
-)
-
-'''
-setup(
-	name = 'dnsupdater',
-	version = __version__,
-	#modules = ['nsupdate.py'],
-	scripts = ['nsupdate'],
-	data_files = [
-		('/etc', ['nsupdate.ini',]),
+	options = {
+		'build_exe': {
+			'includes': ['re', ],
+			'create_shared_zip': False,
+			'compressed': True,
+			'include_msvcr': True
+		},
+	},
+	executables = [
+		Executable(
+			script='faddnsc.py',
+			appendScriptToExe=True,
+			appendScriptToLibrary=False,
+			compress=True,
+		),
+		Executable(
+			script='faddnsc_gui.py',
+			appendScriptToExe=True,
+			appendScriptToLibrary=False,
+			compress=True,
+			base=base
+		)
 	]
 )
-'''

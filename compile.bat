@@ -3,12 +3,10 @@ setlocal
 rd /s /q build
 rd /s /q dist
 
-set PYTHONPATH=../pylib;../libsh
-
 del *.pyc
 
-python setup.py py2exe
-;rem python setup.py bdist_egg
+;rem python setup.py py2exe
+python setup.py bdist_egg
 
 del *.pyc
 

@@ -29,7 +29,7 @@ import re
 import os.path
 from configparser import ConfigParser
 import docopt
-from nsupdate import *
+from faddns import *
 
 import logging
 #sys.excepthook = log.log_exception

@@ -15,7 +15,7 @@ class MyTray(QSystemTrayIcon):
 
 		self.app = app
 
-		self.setToolTip('nsupdate v%s' % __version__)
+		self.setToolTip('faddnsc_gui v%s' % __version__)
 
 		menu = QMenu()
 		menu.addAction('Force refresh', self.on_refresh)
@@ -44,7 +44,7 @@ def main():
 	logging_setup()
 
 	logging.info('*' * 40)
-	logging.info('starting nsupdate tray v%s' % __version__)
+	logging.info('starting faddnsc_gui v%s' % __version__)
 
 	app = QApplication(sys.argv[1:])
 
