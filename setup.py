@@ -20,7 +20,7 @@ setup(
 	},
 	executables = [
 		Executable(
-			script='faddnsc.py',
+			script='faddnsc',
 			appendScriptToExe=True,
 			appendScriptToLibrary=False,
 			compress=True,

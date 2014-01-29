@@ -7,9 +7,11 @@ import urllib.error
 import urllib.parse
 import ipaddress
 import logging
+import subprocess
+import re
 
 
-def call(cmd):
+def call_(cmd):
 	logging.debug('calling: %s' % cmd)
 
 	import os
@@ -20,13 +22,18 @@ def call(cmd):
 #enddef
 
 
+def call(cmd):
+	logging.debug('calling: %s' % cmd)
+	return subprocess.check_output(cmd, shell=True).decode('cp1250')
+#enddef
+
+
 def get_addrs_windows():
 	ret = {} 
 
 	lines = call('netsh interface ipv6 show address')
 
 	for line in lines.split('\n'):
-		print(line)
 		if 'Temporary' in line: continue
 
 		for word in line.split():
