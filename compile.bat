@@ -6,13 +6,13 @@ rd /s /q dist
 del *.pyc
 
 ;rem python setup.py py2exe
-python setup.py bdist_egg
+python setup.py bdist
 
 del *.pyc
 
 rd /s /q build
 del dist\w9xpopen.exe
 
-copy dist\*.exe .\
+;rem copy dist\*.exe .\
 
-rd /s /q dist
+;rem rd /s /q dist
