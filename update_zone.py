@@ -7,7 +7,7 @@ Usage:
   zone_update <zone> <zone_fn> <changes_dir>
 '''
 
-__version__ = '1.0'
+from version import __version__
 
 import sys
 import glob
