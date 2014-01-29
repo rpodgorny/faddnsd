@@ -18,6 +18,7 @@ import os
 import datetime
 import logging
 import docopt
+import json
 
 
 class NsUpdateServer(object):

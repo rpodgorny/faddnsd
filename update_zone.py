@@ -62,35 +62,11 @@ def logging_setup(level):
 #enddef
 
 
-def main():
-	args = docopt.docopt(__doc__, version=__version__)
-
+def update_zone(zone, zone_fn, changes):
 	serial_done = False
-
-	zone = args['<zone>']
-	zone_fn = args['<zone_fn>']
-	changes_dir = args['<changes_dir>']
-
-	logging_setup('DEBUG')
 
 	out_fn = '/tmp/tmp.zone' # TODO: rename variable and make the value random
 
-	changes = []
-	for i in glob.glob(changes_dir+'/*'):
-		c = Change()
-		c.read_from_file(i)
-		changes.append(c)
-	#endfor
-
-	if not changes:
-		logging.info('no change files found, doing nothing')
-		return
-	#endif
-
-	for i in changes:
-		logging.debug('%s %s %s' % (i.host, i.domain, i.addrs))
-	#endfor
-	
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
 	subprocess.call(cmd, shell=True)
 
@@ -185,6 +161,35 @@ def main():
 
 	cmd = 'rndc reload %s' % zone
 	subprocess.call(cmd, shell=True)
+#enddef
+
+
+def main():
+	args = docopt.docopt(__doc__, version=__version__)
+
+	zone = args['<zone>']
+	zone_fn = args['<zone_fn>']
+	changes_dir = args['<changes_dir>']
+
+	logging_setup('DEBUG')
+
+	changes = []
+	for i in glob.glob(changes_dir+'/*'):
+		c = Change()
+		c.read_from_file(i)
+		changes.append(c)
+	#endfor
+
+	if not changes:
+		logging.info('no change files found, doing nothing')
+		return
+	#endif
+
+	for i in changes:
+		logging.debug('%s %s %s' % (i.host, i.domain, i.addrs))
+	#endfor
+	
+	update_zone(zone, zone_fn, changes)
 
 	for c in changes:
 		if c.processed:
