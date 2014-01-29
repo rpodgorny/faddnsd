@@ -4,7 +4,7 @@
 freakin' awesome dynamic dns server
 
 Usage:
-  faddnsd [options]
+  faddnsd [options] <work_dir>
 
 Options:
   -p <port>, --port=<port>  Port number.
@@ -73,7 +73,7 @@ def logging_setup(level):
 def main():
 	args = docopt.docopt(__doc__, version=__version__)
 	 
-	path_prefix = '/tmp'
+	path_prefix = args['<work_dir>']
 	port = int(args['--port'])
 
 	logging_setup('DEBUG')
