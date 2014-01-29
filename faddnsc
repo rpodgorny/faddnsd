@@ -4,7 +4,7 @@
 Freakin' Awesome Dynamic DNS client.
 
 Usage:
-  faddnsc [options] [(-u|--url-prefix=)<url-prefix>]...
+  faddnsc [options] [-u, --url-prefix=<url-prefix>]...
 
 Options:
   -h, --help  Help.
@@ -16,7 +16,7 @@ Options:
               Hostname to report.
   -i, --interval=<interval>
               Update interval (s).
-  (-u|--url-prefix=)<url-prefix>
+  -u, --url-prefix=<url-prefix>
               URL prefix.
 '''
 
@@ -51,7 +51,7 @@ class Config:
 		self.domain = None
 		self.host = socket.gethostname().lower()
 		self.interval = 600
-		self.url_prefix = ['http://podgorny.cz:8765/']
+		self.url_prefix = ['http://faddns.podgorny.cz/']
 	#enddef
 
 	def read_from_ini(self, fn):
