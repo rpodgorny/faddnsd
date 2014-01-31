@@ -3,9 +3,12 @@ from version import __version__
 
 
 if sys.platform == 'win32':
-	base = 'Win32GUI'
 	from cx_Freeze import setup, Executable
+
+	base = 'Win32GUI'
 else:
+	from setuptools import setup
+
 	base = None
 #endif
 
