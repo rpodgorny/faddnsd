@@ -6,6 +6,22 @@ if sys.platform == 'win32':
 	from cx_Freeze import setup, Executable
 
 	base = 'Win32GUI'
+
+	executables = [
+		Executable(
+			script='faddnsc',
+			appendScriptToExe=True,
+			appendScriptToLibrary=False,
+			compress=True,
+		),
+		Executable(
+			script='faddnsc_gui.py',
+			appendScriptToExe=True,
+			appendScriptToLibrary=False,
+			compress=True,
+			base=base
+		)
+	]
 else:
 	from setuptools import setup
 
@@ -24,19 +40,5 @@ setup(
 			'include_msvcr': True
 		},
 	},
-	executables = [
-		Executable(
-			script='faddnsc',
-			appendScriptToExe=True,
-			appendScriptToLibrary=False,
-			compress=True,
-		),
-		Executable(
-			script='faddnsc_gui.py',
-			appendScriptToExe=True,
-			appendScriptToLibrary=False,
-			compress=True,
-			base=base
-		)
-	]
+	scripts = ['faddnsc']
 )

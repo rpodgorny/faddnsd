@@ -18,10 +18,11 @@ makedepends=('mercurial')
 #}
 
 #_hgroot=http://hg.podgorny.cz/
-_hgroot=ssh://podgorny.cz/hg/dnsutils
+#_hgroot=ssh://podgorny.cz/hg/dnsutils
+_hgroot=..
 _hgrepo=dnsutils
 
-build() {
+__build() {
 	cd "$srcdir"
 	msg "Connecting to Mercurial server...."
 
@@ -42,7 +43,8 @@ build() {
 }
 
 package() {
-	cd "$srcdir/$_hgrepo"
+	#cd "$srcdir/$_hgrepo"
+	cd /home/radek/work/dnsutils
 	#make DESTDIR="$pkgdir/" install
 	python setup.py install --root="$pkgdir"/ --optimize=1
 
