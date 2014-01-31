@@ -1,11 +1,14 @@
-from cx_Freeze import setup, Executable
-
+import sys
 from version import __version__
 
 
-base = None
-import sys
-if sys.platform == 'win32': base = 'Win32GUI'
+if sys.platform == 'win32':
+	base = 'Win32GUI'
+	from cx_Freeze import setup, Executable
+else:
+	base = None
+#endif
+
 
 setup(
 	name = 'faddns',
