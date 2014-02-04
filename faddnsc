@@ -39,7 +39,7 @@ def main():
 	log_level = args['--log-level']
 
 	if sys.platform == 'win32':
-		log_fn = 'nsupdate.log'
+		log_fn = 'faddnsc.log'
 	else:
 		log_fn = None
 	#endif
@@ -47,7 +47,7 @@ def main():
 	logging_setup(log_level, log_fn)
 
 	logging.info('*' * 40)
-	logging.info('starting nsupdate v%s' % __version__)
+	logging.info('starting faddnsc v%s' % __version__)
 
 	logging.debug(str(args))
 
