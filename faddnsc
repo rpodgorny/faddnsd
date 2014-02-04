@@ -1,0 +1,125 @@
+#!/usr/bin/python3
+
+'''
+Freakin' Awesome Dynamic DNS client.
+
+Usage:
+  faddnsc [options] [-u, --url-prefix=<url-prefix>]...
+
+Options:
+  -h, --help  Help.
+  --log-level DEBUG | INFO | WARNING | ERROR
+              Debug level [default: INFO].
+  -d, --domain=<domain>
+              Domain to subscribe to.
+  --host=<host>
+              Hostname to report.
+  -i, --interval=<interval>
+              Update interval (s).
+  -u, --url-prefix=<url-prefix>
+              URL prefix.
+'''
+
+from version import __version__
+
+import os
+import sys
+import time
+import docopt
+from faddns import *
+from cfg import cfg
+
+import logging
+sys.excepthook = lambda t, v, tb: logging.critical('unhandled exception', exc_info=(t, v, tb))
+
+
+def main():
+	args = docopt.docopt(__doc__, version=__version__)
+
+	log_level = args['--log-level']
+
+	if sys.platform == 'win32':
+		log_fn = 'nsupdate.log'
+	else:
+		log_fn = None
+	#endif
+
+	logging_setup(log_level, log_fn)
+
+	logging.info('*' * 40)
+	logging.info('starting nsupdate v%s' % __version__)
+
+	logging.debug(str(args))
+
+	for fn in (os.path.expanduser('~/.faddnsc.conf'), 'faddnsc.ini', '/etc/faddnsc.conf'):
+		if not os.path.isfile(fn): continue
+		logging.info('reading configuration from %s' % fn)
+		cfg.read_from_ini(fn)
+		break
+	#endfor
+
+	if args['--domain']: cfg.domain = args['--domain']
+	if args['--host']: cfg.host = args['--host']
+	if args['--interval']: cfg.interval = float(args['--interval'])
+	if args['--url-prefix']: cfg.url_prefix = args['--url-prefix']
+
+	err = cfg.check()
+	if err:
+		logging.critical(err)
+		return
+	#endif
+
+	logging.info('%s' % cfg)
+
+	if sys.platform == 'win32':
+		logging.info('detected win32')
+		get_addrs = get_addrs_windows
+	elif sys.platform.startswith('linux'):
+		logging.info('detected linux')
+		get_addrs = get_addrs_linux
+	else:
+		logging.critical('unknown platform! (%s)' % sys.platform)
+		return
+	#endif
+
+	addrs_old = None
+
+	try:
+		while 1:
+			t = time.time()
+
+			addrs = get_addrs()
+			logging.debug(str(addrs))
+
+			if addrs != addrs_old:
+				all_ok = True
+				for url_prefix in cfg.url_prefix:
+					logging.debug('sending info to %s' % url_prefix)
+					if not send_addrs(url_prefix, cfg.host, cfg.domain, __version__, addrs):
+						all_ok = False
+					#endif
+				#endfor
+
+				if all_ok:
+					addrs_old = addrs
+				#endif
+			else:
+				logging.debug('no change, doing nothing')
+			#endif
+
+			logging.debug('sleeping for %ss' % cfg.interval)
+			while time.time() - t < cfg.interval:
+				# had to add this shit because of the weird 'function call interrupted' behaviour on windows
+				try: time.sleep(1)
+				except KeyboardInterrupt: raise
+				except: pass
+			#endwhile
+		#endwhile
+	except KeyboardInterrupt:
+		logging.debug('keyboard interrupt!')
+	#endtry
+
+	logging.debug('exited main loop')
+#enddef
+
+if __name__ == '__main__': main()

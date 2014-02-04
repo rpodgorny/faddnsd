@@ -1,0 +1,13 @@
+[Unit]
+Description=Freakin' Awesome Dynamic DNS Client
+After=network.target
+Wants=network.target
+
+[Service]
+ExecStart=/usr/bin/faddnsc
+#ExecReload=/bin/kill -HUP $MAINPID
+#StandardOutput=null
+#User=radek
+
+[Install]
+WantedBy=multi-user.target
