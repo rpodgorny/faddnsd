@@ -1,23 +1,12 @@
-from cx_Freeze import setup, Executable
-
+import sys
 from version import __version__
 
 
-base = None
-import sys
-if sys.platform == 'win32': base = 'Win32GUI'
+if sys.platform == 'win32':
+	from cx_Freeze import setup, Executable
 
-setup(
-	name = 'faddns',
-	version = __version__,
-	options = {
-		'build_exe': {
-			'includes': ['re', ],
-			'create_shared_zip': False,
-			'compressed': True,
-			'include_msvcr': True
-		},
-	},
+	base = 'Win32GUI'
+
 	executables = [
 		Executable(
 			script='faddnsc',
@@ -33,4 +22,23 @@ setup(
 			base=base
 		)
 	]
+else:
+	from setuptools import setup
+
+	base = None
+#endif
+
+
+setup(
+	name = 'faddns',
+	version = __version__,
+	options = {
+		'build_exe': {
+			'includes': ['re', ],
+			'create_shared_zip': False,
+			'compressed': True,
+			'include_msvcr': True
+		},
+	},
+	scripts = ['faddnsc']
 )
