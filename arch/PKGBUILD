@@ -1,0 +1,61 @@
+# Maintainer: Radek Podgorny <radek@podgorny.cz>
+pkgname=faddnsc
+pkgver=85
+pkgrel=1
+pkgdesc="Freakin' Awesome Dynamic DNS Client"
+arch=('any')
+#url="https://github.com/ilanschnell/bitarray"
+#license=('PSF')
+depends=('python')
+makedepends=('mercurial')
+#options=(!emptydirs)
+#source=(http://pypi.python.org/packages/source/b/bitarray/bitarray-${pkgver}.tar.gz)
+#md5sums=('a1e80e63aec650721826d385b017201b')
+
+#package() {
+#  cd "$srcdir"/bitarray-$pkgver
+#  python2 setup.py install --root="$pkgdir"/ --optimize=1
+#}
+
+#_hgroot=http://hg.podgorny.cz/
+#_hgroot=ssh://podgorny.cz/hg/dnsutils
+_hgroot=..
+_hgrepo=dnsutils
+
+__build() {
+	cd "$srcdir"
+	msg "Connecting to Mercurial server...."
+
+	if [[ -d "$_hgrepo" ]]; then
+		cd "$_hgrepo"
+		hg pull -u
+		msg "The local files are updated."
+	else
+		hg clone "$_hgroot" "$_hgrepo"
+	fi
+
+	msg "Mercurial checkout done or server timeout"
+	#msg "Starting build..."
+
+	#rm -rf "$srcdir/$_hgrepo-build"
+	#cp -r "$srcdir/$_hgrepo" "$srcdir/$_hgrepo-build"
+	#cd "$srcdir/$_hgrepo-build"
+}
+
+package() {
+	#cd "$srcdir/$_hgrepo"
+	cd /home/radek/work/dnsutils
+	#make DESTDIR="$pkgdir/" install
+	python setup.py install --root="$pkgdir"/ --optimize=1
+
+	#install -d $pkgdir/usr/lib/systemd/system
+	#install nsupdate.service $pkgdir/usr/lib/systemd/system/
+
+	#install -d $pkgdir/etc
+	#install nsupdate.ini $pkgdir/etc/nsupdate.conf
+
+	#install -d $pkgdir/usr/bin
+	#install nsupdate.py $pkgdir/usr/bin/nsupdate
+	#install server.py $pkgdir/usr/bin/nsupdate-server
+	#install nsupdate-zone.py $pkgdir/usr/bin/
+}
