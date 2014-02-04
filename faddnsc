@@ -30,25 +30,21 @@ from faddns import *
 from cfg import cfg
 
 import logging
-#sys.excepthook = log.log_exception
-
-
-def logging_setup(level):
-	if sys.platform == 'win32':
-		fn = 'nsupdate.log'
-	else:
-		fn = None
-	#endif
-
-	logging.basicConfig(filename=fn, level=level)
-#enddef
+sys.excepthook = lambda t, v, tb: logging.critical('unhandled exception', exc_info=(t, v, tb))
 
 
 def main():
 	args = docopt.docopt(__doc__, version=__version__)
 
 	log_level = args['--log-level']
-	logging_setup(log_level)
+
+	if sys.platform == 'win32':
+		log_fn = 'nsupdate.log'
+	else:
+		log_fn = None
+	#endif
+
+	logging_setup(log_level, log_fn)
 
 	logging.info('*' * 40)
 	logging.info('starting nsupdate v%s' % __version__)

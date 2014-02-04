@@ -63,7 +63,7 @@ class MyTray(QSystemTrayIcon):
 	def timerEvent(self, e):
 		t = time.monotonic()
 
-		if self.t_last and t - self.t_last < 600:
+		if self.t_last and t - self.t_last < 600:  # TODO: hard-coded shit
 			return
 		#endif
 
@@ -90,18 +90,20 @@ class MyTray(QSystemTrayIcon):
 	#enddef
 
 	def on_refresh(self):
-		pass
+		logging.info('forced refresh')
+
+		addrs = get_addrs()
+		logging.debug(str(addrs))
+
+		for url_prefix in self.url_prefix:
+			logging.debug('sending info to %s' % url_prefix)
+		#endfor
 	#enddef
 
 	def on_exit(self):
 		self.app.quit()
 	#enddef
 #endclass
-
-
-def logging_setup(level):
-	logging.basicConfig(level=level)
-#enddef
 
 
 def main():
