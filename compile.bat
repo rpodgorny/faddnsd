@@ -10,8 +10,8 @@ python setup.py bdist
 
 del *.pyc
 
-rd /s /q build
-del dist\w9xpopen.exe
+;rem rd /s /q build
+;rem del dist\w9xpopen.exe
 
 ;rem copy dist\*.exe .\
 

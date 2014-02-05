@@ -4,7 +4,7 @@
 Freakin' Awesome Dynamic DNS client.
 
 Usage:
-  faddnsc [options] [-u, --url-prefix=<url-prefix>]...
+  faddnsc [options]
 
 Options:
   -h, --help      Help.
@@ -103,16 +103,11 @@ def main():
 			logging.debug(str(addrs))
 
 			if addrs != addrs_old:
-				all_ok = True
-				for url_prefix in cfg.url_prefix:
-					logging.debug('sending info to %s' % url_prefix)
-					if not send_addrs(url_prefix, cfg.host, __version__, addrs):
-						all_ok = False
-					#endif
-				#endfor
-
-				if all_ok:
-					addrs_old = addrs
+				logging.info('sending info to %s (%s)' % (url_prefix, addr))
+				if send_addrs(url_prefix, cfg.host, __version__, addrs):
+					self.addrs_old = addrs
+				else:
+					logging.warning('send_addrs failed')
 				#endif
 			else:
 				logging.debug('no change, doing nothing')
@@ -130,7 +125,7 @@ def main():
 		logging.debug('keyboard interrupt!')
 	#endtry
 
-	logging.debug('exited main loop')
+	logging.info('exit')
 #enddef
 
 if __name__ == '__main__': main()
