@@ -23,7 +23,7 @@ if sys.platform == 'win32':
 		)
 	]
 else:
-	from setuptools import setup
+	from setuptools import setup, find_packages
 
 	base = None
 #endif
@@ -40,5 +40,7 @@ setup(
 			'include_msvcr': True
 		},
 	},
-	scripts = ['faddnsc']
+	scripts = ['faddnsc'],
+	packages = find_packages(),
+	py_modules = ['cfg', 'faddns', 'version'],
 )
