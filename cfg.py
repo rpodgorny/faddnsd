@@ -3,24 +3,22 @@ from configparser import ConfigParser
 
 class Config:
 	def __init__(self):
-		self.domain = None
 		self.host = socket.gethostname().lower()
 		self.interval = 600
-		self.url_prefix = ['http://faddns.podgorny.cz/']
+		self.url_prefix = ['http://faddns.asterix.cz/']
 	#enddef
 
 	def read_from_ini(self, fn):
 		ini = ConfigParser()
 		ini.read(fn)
 
-		self.domain = ini.get('General', 'Domain', fallback=self.domain)
 		self.host = ini.get('General', 'Host', fallback=self.host)
 		self.interval = ini.getint('General', 'Interval', fallback=self.interval)
-		self.url_prefix = ini.get('General', 'UrlPrefix', fallback=self.url_prefix)
+		self.url_prefix = ini.get('General', 'Url', fallback=self.url_prefix)
 	#enddef
 
 	def check(self):
-		pass
+		if not self.url_prefix: return 'no url!'
 	#enddef
 
 	# TODO: move this to some common module

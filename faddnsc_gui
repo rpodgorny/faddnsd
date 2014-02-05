@@ -7,15 +7,15 @@ Usage:
   faddnsc [options] [-u, --url-prefix=<url-prefix>]...
 
 Options:
-  -h, --help  Help.
+  -h, --help      Help.
   --log-level DEBUG | INFO | WARNING | ERROR
-              Debug level [default: INFO].
-  --host=<host>
-              Hostname to report.
+                  Debug level [default: INFO].
+  -c <config_fn>  Config file path.
+  --host=<host>   Hostname to report.
   -i, --interval=<interval>
-              Update interval (s).
+                  Update interval (s).
   -u, --url-prefix=<url-prefix>
-              URL prefix.
+                  URL prefix.
 '''
 
 from version import __version__
@@ -24,10 +24,12 @@ import os
 import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
-import logging
 import time
 from cfg import cfg
 import docopt
+
+import logging
+sys.excepthook = lambda t, v, tb: logging.critical('unhandled exception', exc_info=(t, v, tb))
 
 from faddns import *
 
@@ -61,7 +63,7 @@ class MyTray(QSystemTrayIcon):
 	def timerEvent(self, e):
 		t = time.monotonic()
 
-		if self.t_last and t - self.t_last < 600:  # TODO: hard-coded shit
+		if self.t_last and t - self.t_last < cfg.interval:
 			return
 		#endif
 
@@ -69,16 +71,11 @@ class MyTray(QSystemTrayIcon):
 		logging.debug(str(addrs))
 
 		if addrs != self.addrs_old:
-			all_ok = True
-			for url_prefix in self.url_prefix:
-				logging.debug('sending info to %s' % url_prefix)
-				if not send_addrs(url_prefix, cfg.host, __version__, addrs):
-					all_ok = False
-				#endif
-			#endfor
-
-			if all_ok:
+			logging.info('sending info to %s (%s)' % (self.url_prefix, addrs))
+			if send_addrs(self.url_prefix, cfg.host, __version__, addrs):
 				self.addrs_old = addrs
+			else:
+				logging.warning('send_addrs failed')
 			#endif
 		else:
 			logging.debug('no change, doing nothing')
@@ -94,7 +91,7 @@ class MyTray(QSystemTrayIcon):
 		logging.debug(str(addrs))
 
 		for url_prefix in self.url_prefix:
-			logging.debug('sending info to %s' % url_prefix)
+			logging.info('sending info to %s' % url_prefix)
 		#endfor
 	#enddef
 
@@ -108,19 +105,33 @@ def main():
 	args = docopt.docopt(__doc__, version=__version__)
 
 	log_level = args['--log-level']
-	logging_setup(log_level)
+	logging_setup(log_level, 'faddnsc_gui.log')
 
 	logging.info('*' * 40)
 	logging.info('starting faddnsc_gui v%s' % __version__)
 
 	logging.debug(str(args))
 
-	for fn in (os.path.expanduser('~/.faddnsc.conf'), 'faddnsc.ini', '/etc/faddnsc.conf'):
-		if not os.path.isfile(fn): continue
-		logging.info('reading configuration from %s' % fn)
-		cfg.read_from_ini(fn)
-		break
-	#endfor
+	cfg_fn = args['-c']
+	if not cfg_fn:
+		for fn in (os.path.expanduser('~/.faddnsc.conf'), 'faddnsc.ini', '/etc/faddnsc.conf'):
+			if not os.path.isfile(fn): continue
+			cfg_fn = fn
+			break
+		#endfor
+	#endif
+
+	if cfg_fn and not os.path.isfile(cfg_fn):
+		logging.critical('%s does not exist, exitting')
+		return
+	#endif
+
+	if cfg_fn:
+		logging.info('reading configuration from %s' % cfg_fn)
+		cfg.read_from_ini(cfg_fn)
+	else:
+		logging.info('no configuration file specified nor found')
+	#endif
 
 	if args['--host']: cfg.host = args['--host']
 	if args['--interval']: cfg.interval = float(args['--interval'])
@@ -152,7 +163,7 @@ def main():
 
 	app.exec_()
 
-	logging.info('done')
+	logging.info('exit')
 #enddef
 
 

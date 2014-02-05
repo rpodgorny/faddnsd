@@ -15,7 +15,7 @@ if sys.platform == 'win32':
 			compress=True,
 		),
 		Executable(
-			script='faddnsc_gui.py',
+			script='faddnsc_gui',
 			appendScriptToExe=True,
 			appendScriptToLibrary=False,
 			compress=True,
@@ -37,10 +37,12 @@ setup(
 			'includes': ['re', ],
 			'create_shared_zip': False,
 			'compressed': True,
-			'include_msvcr': True
+			'include_msvcr': True,
+			'include_files': ['faddns.png', 'faddnsc.ini']
 		},
 	},
 	scripts = ['faddnsc'],
 	#packages = find_packages(),
+	executables = executables,
 	py_modules = ['cfg', 'faddns', 'version'],
 )
