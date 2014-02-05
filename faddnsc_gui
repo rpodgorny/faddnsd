@@ -10,8 +10,6 @@ Options:
   -h, --help  Help.
   --log-level DEBUG | INFO | WARNING | ERROR
               Debug level [default: INFO].
-  -d, --domain=<domain>
-              Domain to subscribe to.
   --host=<host>
               Hostname to report.
   -i, --interval=<interval>
@@ -74,7 +72,7 @@ class MyTray(QSystemTrayIcon):
 			all_ok = True
 			for url_prefix in self.url_prefix:
 				logging.debug('sending info to %s' % url_prefix)
-				if not send_addrs(url_prefix, cfg.host, cfg.domain, __version__, addrs):
+				if not send_addrs(url_prefix, cfg.host, __version__, addrs):
 					all_ok = False
 				#endif
 			#endfor
@@ -124,7 +122,6 @@ def main():
 		break
 	#endfor
 
-	if args['--domain']: cfg.domain = args['--domain']
 	if args['--host']: cfg.host = args['--host']
 	if args['--interval']: cfg.interval = float(args['--interval'])
 	if args['--url-prefix']: cfg.url_prefix = args['--url-prefix']
