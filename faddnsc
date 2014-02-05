@@ -4,7 +4,7 @@
 Freakin' Awesome Dynamic DNS client.
 
 Usage:
-  faddnsc [options] [(-u|--url-prefix=)<url-prefix>]...
+  faddnsc [options] [-u, --url-prefix=<url-prefix>]...
 
 Options:
   -h, --help  Help.
@@ -16,85 +16,42 @@ Options:
               Hostname to report.
   -i, --interval=<interval>
               Update interval (s).
-  (-u|--url-prefix=)<url-prefix>
+  -u, --url-prefix=<url-prefix>
               URL prefix.
 '''
 
 from version import __version__
 
+import os
 import sys
 import time
-import socket
-import re
-import os.path
-from configparser import ConfigParser
 import docopt
-from nsupdate import *
+from faddns import *
+from cfg import cfg
 
 import logging
-#sys.excepthook = log.log_exception
-
-
-def logging_setup(level):
-	if sys.platform == 'win32':
-		fn = 'nsupdate.log'
-	else:
-		fn = None
-	#endif
-
-	logging.basicConfig(filename=fn, level=level)
-#enddef
-
-
-class Config:
-	def __init__(self):
-		self.domain = None
-		self.host = socket.gethostname().lower()
-		self.interval = 600
-		self.url_prefix = ['http://podgorny.cz:8765/']
-	#enddef
-
-	def read_from_ini(self, fn):
-		ini = ConfigParser()
-		ini.read(fn)
-
-		self.domain = ini.get('General', 'Domain', fallback=self.domain)
-		self.host = ini.get('General', 'Host', fallback=self.host)
-		self.interval = ini.getint('General', 'Interval', fallback=self.interval)
-		self.url_prefix = ini.get('General', 'UrlPrefix', fallback=self.url_prefix)
-	#enddef
-
-	def check(self):
-		if not self.domain: return 'domain not specified!'
-	#enddef
-
-	# TODO: move this to some common module
-	def __str__(self):
-		l = []
-
-		for k, v in vars(self).items():
-			l.append('%s=\'%s\'' % (k, v))
-		#endfor
-
-		return ', '.join(l)
-	#enddef
-#endclass
-
-cfg = Config()
+sys.excepthook = lambda t, v, tb: logging.critical('unhandled exception', exc_info=(t, v, tb))
 
 
 def main():
 	args = docopt.docopt(__doc__, version=__version__)
 
 	log_level = args['--log-level']
-	logging_setup(log_level)
+
+	if sys.platform == 'win32':
+		log_fn = 'faddnsc.log'
+	else:
+		log_fn = None
+	#endif
+
+	logging_setup(log_level, log_fn)
 
 	logging.info('*' * 40)
-	logging.info('starting nsupdate v%s' % __version__)
+	logging.info('starting faddnsc v%s' % __version__)
 
 	logging.debug(str(args))
 
-	for fn in (os.path.expanduser('~/.nsupdate.conf'), 'nsupdate.ini', '/etc/nsupdate.conf'):
+	for fn in (os.path.expanduser('~/.faddnsc.conf'), 'faddnsc.ini', '/etc/faddnsc.conf'):
 		if not os.path.isfile(fn): continue
 		logging.info('reading configuration from %s' % fn)
 		cfg.read_from_ini(fn)
