@@ -103,8 +103,8 @@ def main():
 			logging.debug(str(addrs))
 
 			if addrs != addrs_old:
-				logging.info('sending info to %s (%s)' % (url_prefix, addr))
-				if send_addrs(url_prefix, cfg.host, __version__, addrs):
+				logging.info('sending info to %s (%s)' % (cfg.url_prefix, addr))
+				if send_addrs(cfg.url_prefix, cfg.host, __version__, addrs):
 					self.addrs_old = addrs
 				else:
 					logging.warning('send_addrs failed')
