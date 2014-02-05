@@ -41,6 +41,6 @@ setup(
 		},
 	},
 	scripts = ['faddnsc'],
-	packages = find_packages(),
+	#packages = find_packages(),
 	py_modules = ['cfg', 'faddns', 'version'],
 )
