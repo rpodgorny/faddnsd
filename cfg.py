@@ -20,7 +20,7 @@ class Config:
 	#enddef
 
 	def check(self):
-		if not self.domain: return 'domain not specified!'
+		pass
 	#enddef
 
 	# TODO: move this to some common module
