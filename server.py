@@ -21,7 +21,7 @@ import docopt
 import json
 
 
-class NsUpdateServer(object):
+class FADDNSServer(object):
 	def __init__(self, path_prefix):
 		self.path_prefix = path_prefix
 	#enddef
@@ -80,7 +80,7 @@ def main():
 
 	cherrypy.server.socket_host = '0.0.0.0'
 	cherrypy.server.socket_port = port
-	cherrypy.quickstart(NsUpdateServer(path_prefix))
+	cherrypy.quickstart(FADDNSServer(path_prefix))
 #enddef
 
 
