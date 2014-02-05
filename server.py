@@ -7,7 +7,7 @@ Usage:
   faddnsd [options] <work_dir>
 
 Options:
-  -p <port>, --port=<port>  Port number.
+  -p <port>, --port=<port>        Port number.
 '''
 
 from version import __version__
@@ -73,7 +73,12 @@ def main():
 	args = docopt.docopt(__doc__, version=__version__)
 	 
 	path_prefix = args['<work_dir>']
-	port = int(args['--port'])
+
+	if args['--port']:
+		port = int(args['--port'])
+	else:
+		port = 8765
+	#endif
 
 	logging_setup('DEBUG')
 

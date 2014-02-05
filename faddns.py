@@ -135,7 +135,7 @@ def get_addrs_linux():
 #enddef
 
 
-def send_addrs(url_prefix, host, domain, version, addrs):
+def send_addrs(url_prefix, host, version, addrs):
 	# TODO: for the next version?
 	#recs = []
 	#for i in addrs:
@@ -151,7 +151,6 @@ def send_addrs(url_prefix, host, domain, version, addrs):
 	d = {
 		'version': version,
 		'host': host,
-		'domain': domain,
 		#'records': recs
 	}
 	d.update(addrs)

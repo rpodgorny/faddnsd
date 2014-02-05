@@ -7,17 +7,15 @@ Usage:
   faddnsc [options] [-u, --url-prefix=<url-prefix>]...
 
 Options:
-  -h, --help  Help.
+  -h, --help      Help.
   --log-level DEBUG | INFO | WARNING | ERROR
-              Debug level [default: INFO].
-  -d, --domain=<domain>
-              Domain to subscribe to.
-  --host=<host>
-              Hostname to report.
+                  Debug level [default: INFO].
+  -c <config_fn>  Config file path.
+  --host=<host>   Hostname to report.
   -i, --interval=<interval>
-              Update interval (s).
+                  Update interval (s).
   -u, --url-prefix=<url-prefix>
-              URL prefix.
+                  URL prefix.
 '''
 
 from version import __version__
@@ -51,14 +49,27 @@ def main():
 
 	logging.debug(str(args))
 
-	for fn in (os.path.expanduser('~/.faddnsc.conf'), 'faddnsc.ini', '/etc/faddnsc.conf'):
-		if not os.path.isfile(fn): continue
-		logging.info('reading configuration from %s' % fn)
-		cfg.read_from_ini(fn)
-		break
-	#endfor
+	cfg_fn = args['-c']
+	if not cfg_fn:
+		for fn in (os.path.expanduser('~/.faddnsc.conf'), 'faddnsc.ini', '/etc/faddnsc.conf'):
+			if not os.path.isfile(fn): continue
+			cfg_fn = fn
+			break
+		#endfor
+	#endif
 
-	if args['--domain']: cfg.domain = args['--domain']
+	if cfg_fn and not os.path.isfile(cfg_fn):
+		logging.critical('%s does not exist, exitting')
+		return
+	#endif
+
+	if cfg_fn:
+		logging.info('reading configuration from %s' % cfg_fn)
+		cfg.read_from_ini(cfg_fn)
+	else:
+		logging.info('no configuration file specified nor found')
+	#endif
+
 	if args['--host']: cfg.host = args['--host']
 	if args['--interval']: cfg.interval = float(args['--interval'])
 	if args['--url-prefix']: cfg.url_prefix = args['--url-prefix']
@@ -95,7 +106,7 @@ def main():
 				all_ok = True
 				for url_prefix in cfg.url_prefix:
 					logging.debug('sending info to %s' % url_prefix)
-					if not send_addrs(url_prefix, cfg.host, cfg.domain, __version__, addrs):
+					if not send_addrs(url_prefix, cfg.host, __version__, addrs):
 						all_ok = False
 					#endif
 				#endfor
