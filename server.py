@@ -10,8 +10,7 @@ Options:
   -p <port>, --port=<port>  Port number.
 '''
 
-__version__ = '0.0'
-
+from version import __version__
 
 import cherrypy
 import os
