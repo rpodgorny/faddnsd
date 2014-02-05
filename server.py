@@ -27,6 +27,11 @@ class FADDNSServer(object):
 
 	@cherrypy.expose
 	def index(self, version=None, host=None, *args, **kwargs):
+		if not host:
+			logging.info('no host specified, ignoring')
+			return 'no host specified'
+		#endif
+
 		rec = {}
 		rec['version'] = version
 		rec['host'] = host
@@ -47,6 +52,11 @@ class FADDNSServer(object):
 				rec['addrs'].append({'af': af, 'a': a})
 			#endfor
 		#endfor
+
+		if not rec['addrs']:
+			logging.info('no addrs specified, ignoring')
+			return 'no addrs specified, ignoring'
+		#endif
 
 		if not os.path.isdir(self.path_prefix):
 			os.mkdir(self.path_prefix)
