@@ -25,7 +25,7 @@ if sys.platform == 'win32':
 else:
 	from setuptools import setup, find_packages
 
-	base = None
+	executables = None
 #endif
 
 
