@@ -51,7 +51,6 @@ class Change:
 		self.datetime = rec['datetime']
 		self.remote_addr = rec['remote_addr']
 		self.host = rec['host']
-		self.domain = rec['domain']
 		self.addrs = rec['addrs']
 	#enddef
 #endclass
@@ -165,9 +164,10 @@ def main():
 
 	changes = []
 	for i in glob.glob(changes_dir+'/*'):
+		if not os.path.isfile(i): continue
+
 		c = Change()
 		c.read_from_file(i)
-		if c.domain != zone: continue
 		changes.append(c)
 	#endfor
 
@@ -177,7 +177,7 @@ def main():
 	#endif
 
 	for i in changes:
-		logging.debug('%s %s %s' % (i.host, i.domain, i.addrs))
+		logging.debug('%s %s' % (i.host, i.addrs))
 	#endfor
 	
 	update_zone(zone_fn, out_fn, changes)

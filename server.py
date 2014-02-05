@@ -26,11 +26,10 @@ class FADDNSServer(object):
 	#enddef
 
 	@cherrypy.expose
-	def index(self, version=None, host=None, domain=None, *args, **kwargs):
+	def index(self, version=None, host=None, *args, **kwargs):
 		rec = {}
 		rec['version'] = version
 		rec['host'] = host
-		rec['domain'] = domain
 		rec['datetime'] = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
 		rec['remote_addr'] = cherrypy.request.remote.ip
 
@@ -49,12 +48,11 @@ class FADDNSServer(object):
 			#endfor
 		#endfor
 
-		dn = '%s/%s' % (self.path_prefix, domain)
-		if not os.path.isdir(dn):
-			os.mkdir(dn)
+		if not os.path.isdir(self.path_prefix):
+			os.mkdir(self.path_prefix)
 		#endif
 
-		fn = '%s/%s' % (dn, host)
+		fn = '%s/%s' % (self.path_prefix, host)
 		f = open(fn, 'w')
 		f.write(json.dumps(rec))
 		f.close()
