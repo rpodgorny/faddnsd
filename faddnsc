@@ -22,7 +22,6 @@ from version import __version__
 
 import os
 import sys
-import time
 import docopt
 from faddns import *
 from cfg import cfg
@@ -84,43 +83,19 @@ def main():
 
 	if sys.platform == 'win32':
 		logging.info('detected win32')
-		get_addrs = get_addrs_windows
+		get_addrs_f = get_addrs_windows
 	elif sys.platform.startswith('linux'):
 		logging.info('detected linux')
-		get_addrs = get_addrs_linux
+		get_addrs_f = get_addrs_linux
 	else:
 		logging.critical('unknown platform! (%s)' % sys.platform)
 		return
 	#endif
 
-	addrs_old = None
+	ml = MainLoop(get_addrs_f, cfg.host, cfg.url, __version__, cfg.interval)
 
 	try:
-		while 1:
-			t = time.time()
-
-			addrs = get_addrs()
-			logging.debug(str(addrs))
-
-			if addrs != addrs_old:
-				logging.info('sending info to %s (%s)' % (cfg.url_prefix, addrs))
-				if send_addrs(cfg.url_prefix, cfg.host, __version__, addrs):
-					addrs_old = addrs
-				else:
-					logging.warning('send_addrs failed')
-				#endif
-			else:
-				logging.debug('no change, doing nothing')
-			#endif
-
-			logging.debug('sleeping for %ss' % cfg.interval)
-			while time.time() - t < cfg.interval:
-				# had to add this shit because of the weird 'function call interrupted' behaviour on windows
-				try: time.sleep(1)
-				except KeyboardInterrupt: raise
-				except: pass
-			#endwhile
-		#endwhile
+		ml.run()
 	except KeyboardInterrupt:
 		logging.debug('keyboard interrupt!')
 	#endtry
