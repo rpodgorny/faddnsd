@@ -202,7 +202,9 @@ class MainLoop:
 				addrs = self.get_addrs_f()
 				logging.debug(str(addrs))
 
-				if self._refresh or addrs != addrs_old:
+				# disable this for now since we also want to use this as 'i am alive' signal
+				#if self._refresh or addrs != addrs_old:
+				if 1:
 					logging.info('sending info to %s (%s)' % (self.url, addrs))
 					if send_addrs(self.url, self.host, self.version, addrs):
 						addrs_old = addrs
