@@ -5,7 +5,7 @@ class Config:
 	def __init__(self):
 		self.host = socket.gethostname().lower()
 		self.interval = 600
-		self.url = 'http://faddns.asterix.cz/'
+		self.url = None
 	#enddef
 
 	def read_from_ini(self, fn):
