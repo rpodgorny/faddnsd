@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-
 import urllib
 import urllib.request
 import urllib.error
@@ -9,6 +8,7 @@ import ipaddress
 import logging
 import subprocess
 import re
+import time
 
 
 def logging_setup(level, fn=None):
@@ -174,3 +174,60 @@ def send_addrs(url_prefix, host, version, addrs):
 
 	return False
 #enddef
+
+
+class MainLoop:
+	def __init__(self, get_addrs_f, host, url, version, interval):
+		self.get_addrs_f = get_addrs_f
+		self.host = host
+		self.url = url
+		self.version = version
+		self.interval = interval
+
+		self._run = False
+		self._refresh = False
+	#enddef
+
+	def run(self):
+		logging.debug('main loop')
+
+		addrs_old = None
+
+		t_last = 0
+		self._run = True
+		while self._run:
+			t = time.monotonic()
+
+			if t - t_last > self.interval or self._refresh:
+				addrs = self.get_addrs_f()
+				logging.debug(str(addrs))
+
+				if self._refresh or addrs != addrs_old:
+					logging.info('sending info to %s (%s)' % (self.url, addrs))
+					if send_addrs(self.url, self.host, self.version, addrs):
+						addrs_old = addrs
+					else:
+						logging.warning('send_addrs failed')
+					#endif
+				else:
+					logging.debug('no change, doing nothing')
+				#endif
+
+				self._refresh = False
+				t_last = t
+			else:
+				time.sleep(0.1)
+			#endif
+		#endwhile
+
+		logging.debug('exited main loop')
+	#enddef
+
+	def stop(self):
+		self._run = False
+	#enddef
+
+	def refresh(self):
+		self._refresh = True
+	#enddef
+#endclass

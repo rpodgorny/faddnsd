@@ -16,6 +16,7 @@ Options:
                   Update interval (s).
   -u, --url-prefix=<url-prefix>
                   URL prefix.
+  --no-tray       Disable tray icon.
 '''
 
 from version import __version__
@@ -24,7 +25,7 @@ import os
 import sys
 from PySide.QtCore import *
 from PySide.QtGui import *
-import time
+import threading
 from cfg import cfg
 import docopt
 
@@ -38,12 +39,12 @@ get_addrs = None  # TODO: ugly
 
 
 class MyTray(QSystemTrayIcon):
-	def __init__(self, app, url_prefix):
+	def __init__(self, app, ml):
 		icon = QIcon('faddns.png')
 		super().__init__(icon)
 
 		self.app = app
-		self.url_prefix = url_prefix
+		self.ml = ml
 
 		self.addrs_old = None
 
@@ -54,45 +55,13 @@ class MyTray(QSystemTrayIcon):
 		menu.addAction('Exit', self.on_exit)
 		self.setContextMenu(menu)
 
-		self.t_last = None
-		self.startTimer(100)
-
 		self.show()
-	#enddef
-
-	def timerEvent(self, e):
-		t = time.monotonic()
-
-		if self.t_last and t - self.t_last < cfg.interval:
-			return
-		#endif
-
-		addrs = get_addrs()
-		logging.debug(str(addrs))
-
-		if addrs != self.addrs_old:
-			logging.info('sending info to %s (%s)' % (self.url_prefix, addrs))
-			if send_addrs(self.url_prefix, cfg.host, __version__, addrs):
-				self.addrs_old = addrs
-			else:
-				logging.warning('send_addrs failed')
-			#endif
-		else:
-			logging.debug('no change, doing nothing')
-		#endif
-
-		self.t_last = t
 	#enddef
 
 	def on_refresh(self):
 		logging.info('forced refresh')
 
-		addrs = get_addrs()
-		logging.debug(str(addrs))
-
-		for url_prefix in self.url_prefix:
-			logging.info('sending info to %s' % url_prefix)
-		#endfor
+		self.ml.refresh()
 	#enddef
 
 	def on_exit(self):
@@ -148,20 +117,29 @@ def main():
 	global get_addrs
 	if sys.platform == 'win32':
 		logging.info('detected win32')
-		get_addrs = get_addrs_windows
+		get_addrs_f = get_addrs_windows
 	elif sys.platform.startswith('linux'):
 		logging.info('detected linux')
-		get_addrs = get_addrs_linux
+		get_addrs_f = get_addrs_linux
 	else:
 		logging.critical('unknown platform! (%s)' % sys.platform)
 		return
 	#endif
 
+	ml = MainLoop(get_addrs_f, cfg.host, cfg.url, __version__, cfg.interval)
+	thr = threading.Thread(target=ml.run)
+	thr.start()
+
 	app = QApplication(sys.argv[1:])
 
-	tray = MyTray(app, cfg.url_prefix)
+	if not args['--no-tray']:
+		tray = MyTray(app, ml)
+	#endif
 
 	app.exec_()
+
+	ml.stop()
+	thr.join()
 
 	logging.info('exit')
 #enddef

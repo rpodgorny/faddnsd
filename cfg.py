@@ -5,7 +5,7 @@ class Config:
 	def __init__(self):
 		self.host = socket.gethostname().lower()
 		self.interval = 600
-		self.url_prefix = ['http://faddns.asterix.cz/']
+		self.url = 'http://faddns.asterix.cz/'
 	#enddef
 
 	def read_from_ini(self, fn):
@@ -14,11 +14,11 @@ class Config:
 
 		self.host = ini.get('General', 'Host', fallback=self.host)
 		self.interval = ini.getint('General', 'Interval', fallback=self.interval)
-		self.url_prefix = ini.get('General', 'Url', fallback=self.url_prefix)
+		self.url = ini.get('General', 'Url', fallback=self.url)
 	#enddef
 
 	def check(self):
-		if not self.url_prefix: return 'no url!'
+		if not self.url: return 'no url!'
 	#enddef
 
 	# TODO: move this to some common module
