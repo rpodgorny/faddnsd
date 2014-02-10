@@ -22,27 +22,35 @@ if sys.platform == 'win32':
 			base=base
 		)
 	]
+
+	setup(
+		name = 'faddns',
+		version = __version__,
+		options = {
+			'build_exe': {
+				'includes': ['re', ],
+				'create_shared_zip': False,
+				'compressed': True,
+				'include_msvcr': True,
+				'include_files': ['faddns.png', 'faddnsc.ini']
+			},
+		},
+		executables = executables,
+	)
 else:
 	from setuptools import setup, find_packages
 
-	executables = None
-#endif
-
-
-setup(
-	name = 'faddns',
-	version = __version__,
-	options = {
-		'build_exe': {
-			'includes': ['re', ],
-			'create_shared_zip': False,
-			'compressed': True,
-			'include_msvcr': True,
-			'include_files': ['faddns.png', 'faddnsc.ini']
+	setup(
+		name = 'faddns',
+		version = __version__,
+		options = {
+			'build_exe': {
+				'compressed': True,
+				'include_files': ['faddns.png', 'faddnsc.ini']
+			},
 		},
-	},
-	scripts = ['faddnsc'],
-	#packages = find_packages(),
-	executables = executables,
-	py_modules = ['cfg', 'faddns', 'version'],
-)
+		scripts = ['faddnsc'],
+		#packages = find_packages(),
+		py_modules = ['cfg', 'faddns', 'version'],
+	)
+#endif
