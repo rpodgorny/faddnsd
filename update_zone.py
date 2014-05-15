@@ -177,9 +177,9 @@ def main():
 
 	update_zone(zone_fn, out_fn, changes)
 
-	if not check_zone(zone, out_fn):
-		logging.error('zone check error!')
-		return
+	#if not check_zone(zone, out_fn):
+	#	logging.error('zone check error!')
+	#	return
 	#endif
 
 	cmd = 'mv %s %s' % (out_fn, zone_fn)
