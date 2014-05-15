@@ -43,11 +43,10 @@ def get_changes(url):
 
 	data = urllib.request.urlopen(url).read().decode()
 	changes = json.loads(data)
-	if changes:
-		return changes.values()
-	#endif
 
-	return None
+	logging.debug('got %d records' % len(changes))
+
+	return changes
 #enddef
 
 
@@ -98,33 +97,26 @@ def update_zone(zone_fn, out_fn, changes):
 	out_file = open(out_fn, 'w')
 
 	for line in zone_file:
-		change = None
-		for i in changes:
-			if not line.startswith(i['host']+'\t'): continue
-			change = i
-			break
-		#endfor
-
-		# no match
-		if change is None:
-			out_file.write(line)
-			continue
-		#endif
-
 		m = re.match('(\S+)\t(\S+)\t(\S+)\t(\S+)', line)
 		if not m:
-			logging.debug('record for \'%s\' in wrong format, skipping' % line)
 			out_file.write(line)
 			continue
 		#endif
+
+		#logging.debug(m.groups())
+		m_host, m_ttl, m_typ, m_addr = m.groups()
+
+		if not m_host in changes:
+			logging.debug('%s not in changes, skipping' % m_host)
+			out_file.write(line)
+			continue
+		#endif
+
+		change = changes[m_host]
 
 		if 'processed' in change and change['processed']: continue
 
 		logging.info('updating %s' % change['host'])
-
-		#m_host, m_ttl, m_typ, m_addr = m.groups()
-		#logging.debug(m)
-		#logging.debug(m.groups())
 
 		out = ''
 		for af in ['inet', 'inet6']:
@@ -139,7 +131,7 @@ def update_zone(zone_fn, out_fn, changes):
 				dns_f = dns_f.upper()
 
 				out += '%s\t%s\t%s\t%s ; %s\n' % (host, ttl, dns_f, a, change['datetime'])
-				logging.info('%s %s' % (af, a))
+				logging.debug('%s %s %s' % (host, af, a))
 			#endfor
 		#endfor
 
@@ -193,12 +185,12 @@ def main():
 	cmd = 'rndc reload %s' % zone
 	subprocess.call(cmd, shell=True)
 
-	for c in changes:
+	for host, c in changes.items():
 		if 'processed' in c and c['processed']:
 			continue
 		#endif
 
-		logging.warning('%s not processed!' % c['host'])
+		logging.warning('%s not processed!' % host)
 	#endfor
 #enddef
 
