@@ -171,7 +171,7 @@ def main():
 	changes = get_changes(faddns_server_url)
 
 	if not changes:
-		logging.info('no change files found, doing nothing')
+		logging.info('no changes found, doing nothing')
 		return
 	#endif
 
