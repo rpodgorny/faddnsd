@@ -4,19 +4,17 @@
 faddns zone updater.
 
 Usage:
-  zone_update <zone> <zone_fn> <serial_fn> <changes_dir>
+  zone_update <zone> <zone_fn> <serial_fn> <faddns_server_url>
 '''
 
 from version import __version__
 
-import sys
-import glob
 import re
 import subprocess
-import os
 import logging
 import docopt
 import json
+import urllib.request
 
 
 def check_zone(zone, fn):
@@ -34,30 +32,22 @@ def check_zone(zone, fn):
 #enddef
 
 
-class Change:
-	def __init__(self):
-		self.ttl = '10m'
-		self.processed = False
-	#enddef
-
-	def read_from_file(self, fn):
-		self.fn = fn
-
-		f = open(fn, 'r')
-		rec = json.loads(f.read())
-		f.close()
-
-		self.version = rec['version']
-		self.datetime = rec['datetime']
-		self.remote_addr = rec['remote_addr']
-		self.host = rec['host']
-		self.addrs = rec['addrs']
-	#enddef
-#endclass
-
-
 def logging_setup(level):
 	logging.basicConfig(level=level)
+#enddef
+
+
+def get_changes(url):
+	url += '/dump'
+	logging.debug('getting changes from %s' % url)
+
+	data = urllib.request.urlopen(url).read().decode()
+	changes = json.loads(data)
+	if changes:
+		return changes.values()
+	#endif
+
+	return None
 #enddef
 
 
@@ -110,7 +100,7 @@ def update_zone(zone_fn, out_fn, changes):
 	for line in zone_file:
 		change = None
 		for i in changes:
-			if not line.startswith(i.host+'\t'): continue
+			if not line.startswith(i['host']+'\t'): continue
 			change = i
 			break
 		#endfor
@@ -128,39 +118,34 @@ def update_zone(zone_fn, out_fn, changes):
 			continue
 		#endif
 
-		if change.processed: continue
+		if 'processed' in change and change['processed']: continue
 
-		logging.info('updating %s' % change.host)
+		logging.info('updating %s' % change['host'])
 
 		#m_host, m_ttl, m_typ, m_addr = m.groups()
 		#logging.debug(m)
 		#logging.debug(m.groups())
 
 		out = ''
-		for af_a in change.addrs:
-			af = af_a['af']
-			a = af_a['a']
+		for af in ['inet', 'inet6']:
+			if not af in change: continue
 
-			if af == 'inet':
-				af = 'a'
-			elif af == 'inet6':
-				af = 'aaaa'
-			else:
-				logging.debug('unsupported record type %s' % af)
-				continue
-			#endif
+			for a in change[af]:
+				dns_f = {'inet': 'a', 'inet6': 'aaaa'}[af]
 
-			host = change.host.lower()
-			ttl = change.ttl.upper()
-			af = af.upper()
+				host = change['host'].lower()
+				#ttl = change['ttl'].upper()
+				ttl = '10m'
+				dns_f = dns_f.upper()
 
-			out += '%s\t%s\t%s\t%s ; %s\n' % (host, ttl, af, a, change.datetime)
-			logging.info('%s %s' % (af, a))
+				out += '%s\t%s\t%s\t%s ; %s\n' % (host, ttl, dns_f, a, change['datetime'])
+				logging.info('%s %s' % (af, a))
+			#endfor
 		#endfor
 
 		if out:
 			out_file.write(out)
-			change.processed = True
+			change['processed'] = True
 		else:
 			logging.debug('change contains no usable data, keeping old record')
 			out_file.write(line)
@@ -178,29 +163,18 @@ def main():
 	zone = args['<zone>']
 	zone_fn = args['<zone_fn>']
 	serial_fn = args['<serial_fn>']
-	changes_dir = args['<changes_dir>']
+	faddns_server_url = args['<faddns_server_url>']
 	out_fn = '/tmp/%s.zone_tmp' % zone
 
 	logging_setup('DEBUG')
 
-	changes = []
-	for i in glob.glob(changes_dir+'/*'):
-		if not os.path.isfile(i): continue
-
-		c = Change()
-		c.read_from_file(i)
-		changes.append(c)
-	#endfor
+	changes = get_changes(faddns_server_url)
 
 	if not changes:
 		logging.info('no change files found, doing nothing')
 		return
 	#endif
 
-	for i in changes:
-		logging.debug('%s %s' % (i.host, i.addrs))
-	#endfor
-	
 	update_zone(zone_fn, out_fn, changes)
 
 	if not check_zone(zone, out_fn):
@@ -220,14 +194,15 @@ def main():
 	subprocess.call(cmd, shell=True)
 
 	for c in changes:
-		if c.processed:
-			os.remove(c.fn)
+		if 'processed' in c and c['processed']:
 			continue
 		#endif
 
-		logging.warning('%s not processed!' % c.host)
+		logging.warning('%s not processed!' % c['host'])
 	#endfor
 #enddef
 
 
-if __name__ == '__main__': main()
+if __name__ == '__main__':
+	main()
+#endif
