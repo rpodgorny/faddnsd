@@ -135,7 +135,7 @@ def update_zone(zone_fn, out_fn, changes):
 
 				host = change['host'].lower()
 				#ttl = change['ttl'].upper()
-				ttl = '10m'
+				ttl = '10M'
 				dns_f = dns_f.upper()
 
 				out += '%s\t%s\t%s\t%s ; %s\n' % (host, ttl, dns_f, a, change['datetime'])
