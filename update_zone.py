@@ -4,7 +4,7 @@
 faddns zone updater.
 
 Usage:
-  zone_update <zone> <zone_fn> <changes_dir>
+  zone_update <zone> <zone_fn> <serial_fn> <changes_dir>
 '''
 
 from version import __version__
@@ -61,16 +61,16 @@ def logging_setup(level):
 #enddef
 
 
-def update_zone(zone_fn, out_fn, changes):
-	serial_done = False
-
-	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
+def update_serial(serial_fn, out_fn):
+	cmd = 'cp -a %s %s' % (serial_fn, out_fn)
 	subprocess.call(cmd, shell=True)
 
-	zone_file = open(zone_fn, 'r')
+	serial_done = False
+
+	serial_file = open(serial_fn, 'r')
 	out_file = open(out_fn, 'w')
 
-	for line in zone_file:
+	for line in serial_file:
 		if 'erial' in line:
 			if not serial_done:
 				#serial = re.match('.*[0-9]+.*', line)
@@ -84,10 +84,30 @@ def update_zone(zone_fn, out_fn, changes):
 
 				logging.debug('serial: %s -> %s' % (serial, serial + 1))
 			#endif
-
-			continue
+		else:
+			out_file.write(line)
 		#endif
+	#endfor
 
+	if not serial_done:
+		logging.error('failed to update serial')
+	#endif
+
+	serial_file.close()
+	out_file.close()
+#enddef
+
+
+def update_zone(zone_fn, out_fn, changes):
+	serial_done = False
+
+	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
+	subprocess.call(cmd, shell=True)
+
+	zone_file = open(zone_fn, 'r')
+	out_file = open(out_fn, 'w')
+
+	for line in zone_file:
 		change = None
 		for i in changes:
 			if not line.startswith(i.host+'\t'): continue
@@ -157,6 +177,7 @@ def main():
 
 	zone = args['<zone>']
 	zone_fn = args['<zone_fn>']
+	serial_fn = args['<serial_fn>']
 	changes_dir = args['<changes_dir>']
 	out_fn = '/tmp/%s.zone_tmp' % zone
 
@@ -188,6 +209,11 @@ def main():
 	#endif
 
 	cmd = 'mv %s %s' % (out_fn, zone_fn)
+	subprocess.call(cmd, shell=True)
+
+	update_serial(serial_fn, out_fn)
+
+	cmd = 'mv %s %s' % (out_fn, serial_fn)
 	subprocess.call(cmd, shell=True)
 
 	cmd = 'rndc reload %s' % zone
