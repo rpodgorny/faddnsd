@@ -58,7 +58,7 @@ def main():
 	#endif
 
 	if cfg_fn and not os.path.isfile(cfg_fn):
-		logging.critical('%s does not exist, exitting')
+		logging.critical('%s does not exist, exitting' % cfg_fn)
 		return
 	#endif
 
