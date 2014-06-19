@@ -203,14 +203,23 @@ class MainLoop:
 
 		addrs_old = None
 
+		interval = 60  # TODO: hard-coded shit
 		t_last = 0
 		self._run = True
 		while self._run:
 			t = time.monotonic()
 
-			if t - t_last > self.interval or self._refresh:
+			if t - t_last > interval or self._refresh:
 				addrs = self.get_addrs_f()
 				logging.debug(str(addrs))
+
+				if not addrs:
+					logging.debug('no addresses, setting interval to 60')
+					interval = 60  # TODO: hard-coded shit
+				else:
+					logging.debug('some addresses, setting interval to %s' % self.interval)
+					interval = self.interval
+				#endif
 
 				# disable this for now since we also want to use this as 'i am alive' signal
 				#if self._refresh or addrs != addrs_old:
