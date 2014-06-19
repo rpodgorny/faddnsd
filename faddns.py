@@ -138,7 +138,7 @@ def get_addrs_linux():
 
 	# disable ether for now
 	if 'ether' in ret:
-		del ret['ehter']
+		del ret['ether']
 	#endif
 
 	return ret
