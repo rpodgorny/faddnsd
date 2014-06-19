@@ -51,6 +51,8 @@ def call(cmd):
 def get_addrs_windows():
 	ret = {} 
 
+	# TODO: get ipv4 addresses
+
 	lines = call('netsh interface ipv6 show address')
 
 	for line in lines.split('\n'):
@@ -67,6 +69,8 @@ def get_addrs_windows():
 		#endfor
 	#endfor
 
+	# disable ether for now
+	'''
 	lines = call('ipconfig /all')
 	for word in lines.split():
 		word = word.strip().lower()
@@ -77,6 +81,7 @@ def get_addrs_windows():
 		if not 'ether' in ret: ret['ether'] = set()
 		ret['ether'].add(word)
 	#endfor
+	'''
 
 	return ret
 #enddef
@@ -130,6 +135,11 @@ def get_addrs_linux():
 		if not addr_type in ret: ret[addr_type] = set()
 		ret[addr_type].add(addr)
 	#endfor
+
+	# disable ether for now
+	if 'ether' in ret:
+		del ret['ehter']
+	#endif
 
 	return ret
 #enddef
