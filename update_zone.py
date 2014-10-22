@@ -88,8 +88,6 @@ def update_serial(serial_fn, out_fn):
 
 
 def update_zone(zone_fn, out_fn, changes):
-	serial_done = False
-
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
 	subprocess.call(cmd, shell=True)
 
@@ -103,7 +101,7 @@ def update_zone(zone_fn, out_fn, changes):
 			continue
 		#endif
 
-		#logging.debug(m.groups())
+		logging.debug(m.groups())
 		m_host, m_ttl, m_typ, m_addr = m.groups()
 
 		if not m_host in changes:
