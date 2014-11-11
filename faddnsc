@@ -18,13 +18,13 @@ Options:
                   URL prefix.
 '''
 
-from version import __version__
+from faddns.version import __version__
 
 import os
 import sys
 import docopt
-from faddns import *
-from cfg import cfg
+import faddns
+from faddns.cfg import cfg
 
 import logging
 sys.excepthook = lambda t, v, tb: logging.critical('unhandled exception', exc_info=(t, v, tb))
@@ -41,7 +41,7 @@ def main():
 		log_fn = None
 	#endif
 
-	logging_setup(log_level, log_fn)
+	faddns.logging_setup(log_level, log_fn)
 
 	logging.info('*' * 40)
 	logging.info('starting faddnsc v%s' % __version__)
@@ -83,16 +83,16 @@ def main():
 
 	if sys.platform == 'win32':
 		logging.info('detected win32')
-		get_addrs_f = get_addrs_windows
+		get_addrs_f = faddns.get_addrs_windows
 	elif sys.platform.startswith('linux'):
 		logging.info('detected linux')
-		get_addrs_f = get_addrs_linux
+		get_addrs_f = faddns.get_addrs_linux
 	else:
 		logging.critical('unknown platform! (%s)' % sys.platform)
 		return
 	#endif
 
-	ml = MainLoop(get_addrs_f, cfg.host, cfg.url, __version__, cfg.interval)
+	ml = faddns.MainLoop(get_addrs_f, cfg.host, cfg.url, __version__, cfg.interval)
 
 	try:
 		ml.run()

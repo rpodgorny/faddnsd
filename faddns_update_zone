@@ -7,7 +7,7 @@ Usage:
   zone_update <zone> <zone_fn> <serial_fn> <faddns_server_url>
 '''
 
-from version import __version__
+from faddns.version import __version__
 
 import re
 import subprocess

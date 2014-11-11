@@ -10,7 +10,7 @@ Options:
   -p <port>, --port=<port>        Port number.
 '''
 
-from version import __version__
+from faddns.version import __version__
 
 import cherrypy
 import datetime
