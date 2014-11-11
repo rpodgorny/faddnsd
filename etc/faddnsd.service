@@ -1,0 +1,10 @@
+[Unit]
+Description=Freakin' Awesome Dynamic DNS Server
+After=network.target
+Wants=network.target
+
+[Service]
+ExecStart=/usr/bin/faddnsd
+
+[Install]
+WantedBy=multi-user.target
