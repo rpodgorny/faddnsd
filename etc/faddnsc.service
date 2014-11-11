@@ -5,9 +5,6 @@ Wants=network.target
 
 [Service]
 ExecStart=/usr/bin/faddnsc
-#ExecReload=/bin/kill -HUP $MAINPID
-#StandardOutput=null
-#User=radek
 
 [Install]
 WantedBy=multi-user.target
