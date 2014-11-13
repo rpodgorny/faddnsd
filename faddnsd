@@ -25,9 +25,9 @@ import logging
 import docopt
 import json
 import time
-import threading
 import subprocess
 import re
+from cherrypy.process.plugins import Monitor
 
 
 # TODO: get rid of this global shit
@@ -45,7 +45,7 @@ do_pair = set()
 
 
 def dt_format(dt):
-	return dt.strftime('%Y-%m-%dT%H:%M:%S')
+	return dt.strftime('%Y-%m-%d %H:%M:%S')
 #enddef
 
 
@@ -86,11 +86,18 @@ class FADDNSServer(object):
 	def dump(self):
 		recs_with_time = {}
 
-		for host, rec in recs:
+		for host, rec in recs.items():
 			recs_with_time[host] = rec
 			recs_with_time[host]['datetime'] = dt_format(datetimes[host])
+
+			# sets are not serializable to json -> convert them to lists
+			for k, v in rec.items():
+				if isinstance(v, set):
+					recs_with_time[host][k] = list(v)
+				#endif
+			#endfor
 		#endfor
-			
+
 		return json.dumps(recs_with_time, indent=4)
 	#enddef
 
@@ -105,6 +112,7 @@ class FADDNSServer(object):
 	def listhosts(self):
 		ret = ''
 		ret += '<html><body><table>'
+		ret += '<tr><th>hostname</th><th>datetime</th><th>version</th><th>ehter</th><th>inet</th><th>inet6</th><th>remote_addr</th><th>ops</th></tr>'
 
 		for host in sorted(recs.keys()):
 			rec = recs[host]
@@ -123,6 +131,8 @@ class FADDNSServer(object):
 					ret += '<td></td>'
 				#endif
 			#endfor
+
+			ret += '<td>%s</td>' % rec['remote_addr']
 
 			if host in unpaired:
 				ret += '<td><a href="/addhost/?host=%s">add</a></td>' % host
@@ -157,6 +167,7 @@ def check_zone(zone, fn):
 
 
 def update_serial(serial_fn, out_fn):
+	# let's copy the file first to retain all attributes
 	cmd = 'cp -a %s %s' % (serial_fn, out_fn)
 	subprocess.call(cmd, shell=True)
 
@@ -219,6 +230,7 @@ def generate_bind_lines(rec, dt):
 def update_zone(zone_fn, out_fn, recs):
 	paired = set()
 
+	# let's copy the file first to retain all attributes
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
 	subprocess.call(cmd, shell=True)
 
@@ -332,38 +344,6 @@ def xxx():
 #enddef
 
 
-# TODO: rename
-'''
-class Worker(threading.Thread):
-	def __init__(self, interval):
-		super().__init__()
-
-		self.interval = interval
-
-		self._run = True
-		self._t_last = 0
-	#enddef
-
-	def run(self):
-		while self._run:
-			t = time.monotonic()
-
-			if t - self._t_last > self.interval:
-				xxx()
-				self._t_last = t
-			#endif
-
-			time.sleep(1)
-		#endwhile
-	#enddef
-
-	def stop(self):
-		self._run = False
-	#enddef
-#enddef
-'''
-
-
 def logging_setup(level):
 	logging.basicConfig(level=level)
 #enddef
@@ -420,23 +400,21 @@ def main():
 	g.serial_fn = serial_fn
 	g.out_fn = out_fn
 
-	#thr = Worker(5)
-	#thr.start()
-	from cherrypy.process.plugins import Monitor
-	m = Monitor(cherrypy.engine, xxx, frequency=10, name='Worker')  # TODO: rename
+	frequency = 60  # TODO: hard-coded shit
+
+	m = Monitor(cherrypy.engine, xxx, frequency=frequency, name='Worker')  # TODO: rename
 	m.subscribe()
 
 	cherrypy.server.socket_host = '0.0.0.0'
 	cherrypy.server.socket_port = port
-	cherrypy.config.update({'engine.autoreload.on': False})
+	cherrypy.config.update({
+		'engine.autoreload.on': False,
+		'tools.proxy.on': True,  # retain the original address if we're being forwarded to
+	})
 
 	cherrypy.tree.mount(server, '/')
 	cherrypy.engine.start()
 	cherrypy.engine.block()
-	#cherrypy.quickstart(FADDNSServer())
-
-	#thr.stop()
-	#thr.join()
 
 	return 0
 #enddef
