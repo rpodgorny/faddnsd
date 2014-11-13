@@ -104,7 +104,9 @@ class FADDNSServer(object):
 		ret = ''
 		ret += '<html><body><table>'
 
-		for host, rec in recs.items():
+		for host in sorted(recs.keys()):
+			rec = recs[host]
+
 			ret += '<tr>'
 			ret += '<td>%s</td>' % host
 			ret += '<td>%s</td>' % dt_format(datetimes[host])
