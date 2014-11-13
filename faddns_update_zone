@@ -18,6 +18,8 @@ import urllib.request
 
 
 def check_zone(zone, fn):
+	logging.debug('check_zone')
+
 	cmd = 'named-checkzone %s %s' % (zone, fn) 
 
 	try:
@@ -128,7 +130,7 @@ def update_zone(zone_fn, out_fn, changes):
 				ttl = '10M'
 				dns_f = dns_f.upper()
 
-				out += '%s\t%s\t%s\t%s ; %s\n' % (host, ttl, dns_f, a, change['datetime'])
+				out += '%s\t%s\t%s\t%s ; faddns %s\n' % (host, ttl, dns_f, a, change['datetime'])
 				logging.debug('%s %s %s' % (host, af, a))
 			#endfor
 		#endfor
