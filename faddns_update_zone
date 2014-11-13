@@ -167,9 +167,11 @@ def main():
 
 	update_zone(zone_fn, out_fn, changes)
 
-	#if not check_zone(zone, out_fn):
-	#	logging.error('zone check error!')
-	#	return
+	if zone_fn != serial_fn:
+		logging.info('zone file and serial file are not the same, skipping check')
+	elif not check_zone(zone, out_fn):
+		logging.error('zone check error!')
+		return
 	#endif
 
 	cmd = 'mv %s %s' % (out_fn, zone_fn)
