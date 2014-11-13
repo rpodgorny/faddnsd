@@ -1,3 +1,0 @@
-setlocal
-
-python faddnsc.py %*
