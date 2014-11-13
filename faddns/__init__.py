@@ -15,14 +15,14 @@ def logging_setup(level, fn=None):
 	logger = logging.getLogger()
 	logger.setLevel(logging.DEBUG)
 
-	formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
-
+	formatter = logging.Formatter('%(levelname)s: %(message)s')
 	sh = logging.StreamHandler()
 	sh.setLevel(level)
 	sh.setFormatter(formatter)
 	logger.addHandler(sh)
 
 	if fn:
+		formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(message)s')
 		fh = logging.FileHandler(fn)
 		fh.setLevel(level)
 		fh.setFormatter(formatter)
