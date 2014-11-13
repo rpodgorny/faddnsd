@@ -12,11 +12,13 @@ Arguments:
   <serial_fn>  Filename of zone file which contains serial.
 
 Options:
-  -p <port>, --port=<port>        Port number.
+  -p <port>, --port=<port>  Port number.
+  --debug                   Enable debug output.
 '''
 
 from faddns.version import __version__
 
+import sys
 import cherrypy
 import datetime
 import logging
@@ -368,7 +370,12 @@ def logging_setup(level):
 def main():
 	args = docopt.docopt(__doc__, version=__version__)
 
-	logging_setup('DEBUG')
+	debug = args['--debug']
+	if debug:
+		logging_setup('DEBUG')
+	else:
+		logging_setup('INFO')
+	#endif
 
 	zone = args['<zone>']
 	zone_fn = args['<zone_fn>']
@@ -385,6 +392,22 @@ def main():
 	else:
 		port = 8765
 	#endif
+
+	try:
+		f = open(zone_fn, 'r')
+		f.close()
+	except:
+		logging.critical('unable to open %s for reading' % zone_fn)
+		return 1
+	#endtry
+
+	try:
+		f = open(serial_fn, 'r')
+		f.close()
+	except:
+		logging.critical('unable to open %s for reading' % serial_fn)
+		return 1
+	#endtry
 
 	server = FADDNSServer()
 
@@ -412,9 +435,11 @@ def main():
 
 	#thr.stop()
 	#thr.join()
+
+	return 0
 #enddef
 
 
 if __name__ == '__main__':
-	main()
+	sys.exit(main())
 #enddef
