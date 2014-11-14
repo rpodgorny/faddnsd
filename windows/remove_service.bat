@@ -1,1 +1,1 @@
-nssm remove faddnsc
+nssm remove faddnsc confirm
