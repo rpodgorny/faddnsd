@@ -394,7 +394,6 @@ def main():
 	server = FADDNSServer()
 
 	# TODO: this is ugly as hell!!!
-	g.server = server
 	g.zone = zone
 	g.zone_fn = zone_fn
 	g.serial_fn = serial_fn
