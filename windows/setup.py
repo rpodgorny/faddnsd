@@ -13,13 +13,13 @@ executables = [
 		appendScriptToLibrary=False,
 		compress=True,
 	),
-	Executable(
-		script='faddnsc_gui',
-		appendScriptToExe=True,
-		appendScriptToLibrary=False,
-		compress=True,
-		base=base
-	)
+	#Executable(
+	#	script='faddnsc_gui',
+	#	appendScriptToExe=True,
+	#	appendScriptToLibrary=False,
+	#	compress=True,
+	#	base=base
+	#),
 ]
 
 setup(
