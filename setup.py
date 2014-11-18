@@ -10,9 +10,9 @@ setup(
 	options = {
 		'build_exe': {
 			'compressed': True,
-			'include_files': ['faddns.png', 'etc/faddnsc.conf']
+			'include_files': ['etc/faddnsc.conf', ]
 		},
 	},
-	scripts = ['faddnsc', 'faddnsd', 'faddns_update_zone'],
+	scripts = ['faddnsc', 'faddnsd'],
 	packages = find_packages(),
 )
