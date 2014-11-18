@@ -31,7 +31,6 @@ setup(
 			'create_shared_zip': False,
 			'compressed': True,
 			'include_msvcr': True,
-			'include_files': ['faddns.png', 'faddnsc.ini']
 		},
 	},
 	executables = executables,

@@ -8,7 +8,7 @@ set PYTHONPATH=..
 rd /s /q build
 rd /s /q dist
 
-python setup.py install --prefix=dist
+python setup_win.py install --prefix=dist
 
 rd /s /q pkg
 md pkg
@@ -16,6 +16,8 @@ md pkg\%name%
 cp -av dist/* pkg/%name%/
 cp atxpkg_backup pkg/.atxpkg_backup
 
+cp etc/faddnsc.conf pkg/%name%/faddnsc.ini
+cp faddnsc.png pkg/%name%/
 cp nssm.exe pkg/%name%/
 cp install_service.bat pkg/%name%/
 cp remove_service.bat pkg/%name%/
