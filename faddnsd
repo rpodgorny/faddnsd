@@ -218,7 +218,7 @@ def generate_bind_lines(rec, dt):
 			ttl = '10M'
 			dns_f = dns_f.upper()
 
-			ret += '%s\t%s\t%s\t%s ; faddns %s\n' % (host, ttl, dns_f, a, dt_format(dt))
+			ret += '%s\t%s\t%s\t%s ; @faddns %s\n' % (host, ttl, dns_f, a, dt_format(dt))
 			logging.debug('%s %s %s' % (host, af, a))
 		#endfor
 	#endfor
@@ -238,7 +238,8 @@ def update_zone(zone_fn, out_fn, recs):
 	out_file = open(out_fn, 'w')
 
 	for line in zone_file:
-		m = re.match('(\S+)\t(\S+)\t(\S+)\t(\S+)', line)
+		'''
+		m = re.match('(\S+)\t(\S+)\t(\S+)\t(\S+).*', line)
 		if not m:
 			out_file.write(line)
 			continue
@@ -247,6 +248,14 @@ def update_zone(zone_fn, out_fn, recs):
 		logging.debug(m.groups())
 		m_host, m_ttl, m_typ, m_addr = m.groups()
 		host = m_host.lower()
+		'''
+
+		if not '@faddns' in line:
+			out_file.write(line)
+			continue
+		#endif
+
+		host = line.split()[0].lower()
 
 		if not host in changed:
 			logging.debug('%s not in changes, skipping' % host)
