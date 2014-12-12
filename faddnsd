@@ -228,7 +228,7 @@ def generate_bind_lines(rec, dt):
 
 
 def update_zone(zone_fn, out_fn, recs):
-	paired = set()
+	written = set()
 
 	# let's copy the file first to retain all attributes
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
@@ -257,6 +257,8 @@ def update_zone(zone_fn, out_fn, recs):
 
 		host = line.split()[0].lower()
 
+		if host in written: continue
+
 		if not host in changed:
 			logging.debug('%s not in changes, skipping' % host)
 			out_file.write(line)
@@ -265,10 +267,8 @@ def update_zone(zone_fn, out_fn, recs):
 
 		rec = recs[host]
 
-		if host in paired: continue
-
 		logging.info('updating %s' % host)
-		paired.add(host)
+		written.add(host)
 		changed.remove(host)
 
 		out = generate_bind_lines(rec, datetimes[host])
@@ -288,7 +288,7 @@ def update_zone(zone_fn, out_fn, recs):
 		rec = recs[host]
 
 		logging.info('updating %s' % host)
-		paired.add(host)
+		written.add(host)
 		changed.remove(host)
 
 		# TODO: most of this is cut-n-pasted from above
@@ -305,7 +305,7 @@ def update_zone(zone_fn, out_fn, recs):
 	zone_file.close()
 	out_file.close()
 
-	return changed - paired
+	return changed - written
 #enddef
 
 
