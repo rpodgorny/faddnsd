@@ -5,6 +5,7 @@ Wants=network.target
 
 [Service]
 ExecStart=/usr/bin/faddnsd
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
