@@ -309,6 +309,12 @@ def update_zone(zone_fn, out_fn, recs):
 #enddef
 
 
+def sign_zone(zone, zone_fn):
+	cmd = 'dnssec-signzone -o %s %s' % (zone, zone_fn)
+	subprocess.check_call(cmd, shell=True)
+#enddef
+
+
 # TODO: rename to something better
 def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 	global unpaired
@@ -337,6 +343,8 @@ def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 
 	cmd = 'mv %s %s' % (out_fn, serial_fn)
 	subprocess.call(cmd, shell=True)
+
+	sign_zone(zone, serial_fn)
 
 	cmd = 'rndc reload %s' % zone
 	subprocess.call(cmd, shell=True)
