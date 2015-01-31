@@ -19,6 +19,7 @@ Options:
 from faddns.version import __version__
 
 import sys
+import os
 import cherrypy
 import datetime
 import logging
@@ -309,8 +310,8 @@ def update_zone(zone_fn, out_fn, recs):
 #enddef
 
 
-def sign_zone(zone, zone_fn):
-	cmd = 'dnssec-signzone -o %s %s' % (zone, zone_fn)
+def sign_zone(zone, serial_fn):
+	cmd = 'cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn)
 	subprocess.check_call(cmd, shell=True)
 #enddef
 
