@@ -28,6 +28,7 @@ import json
 import time
 import subprocess
 import re
+import ipaddress
 from cherrypy.process.plugins import Monitor
 
 
@@ -212,6 +213,10 @@ def generate_bind_lines(rec, dt):
 		if not af in rec: continue
 
 		for a in rec[af]:
+			if ipaddress.ip_address(a).is_private: continue
+			if ipaddress.ip_address(a).is_loopback: continue
+			if ipaddress.ip_address(a).is_link_local: continue
+
 			dns_f = {'inet': 'a', 'inet6': 'aaaa'}[af]
 
 			host = rec['host'].lower()
