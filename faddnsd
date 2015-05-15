@@ -114,7 +114,7 @@ class FADDNSServer(object):
 	def listhosts(self):
 		ret = ''
 		ret += '<html><body><table>'
-		ret += '<tr><th>hostname</th><th>datetime</th><th>version</th><th>ehter</th><th>inet</th><th>inet6</th><th>remote_addr</th><th>ops</th></tr>'
+		ret += '<tr><th>hostname</th><th>datetime</th><th>version</th><th>ether</th><th>inet</th><th>inet6</th><th>remote_addr</th><th>ops</th></tr>'
 
 		for host in sorted(recs.keys()):
 			rec = recs[host]
