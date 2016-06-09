@@ -27,8 +27,6 @@ def logging_setup(level, fn=None):
 		fh.setLevel(level)
 		fh.setFormatter(formatter)
 		logger.addHandler(fh)
-	#endif
-#enddef
 
 
 def call_OLD(cmd):
@@ -39,17 +37,15 @@ def call_OLD(cmd):
 	ret = f.read()
 	f.close()
 	return ret
-#enddef
 
 
 def call(cmd):
 	logging.debug('calling: %s' % cmd)
 	return subprocess.check_output(cmd, shell=True).decode('cp1250')
-#enddef
 
 
 def get_addrs_windows():
-	ret = {} 
+	ret = {}
 
 	# TODO: get ipv4 addresses
 
@@ -66,8 +62,6 @@ def get_addrs_windows():
 
 			if not 'inet6' in ret: ret['inet6'] = set()
 			ret['inet6'].add(word)
-		#endfor
-	#endfor
 
 	# disable ether for now
 	'''
@@ -80,15 +74,13 @@ def get_addrs_windows():
 
 		if not 'ether' in ret: ret['ether'] = set()
 		ret['ether'].add(word)
-	#endfor
 	'''
 
 	return ret
-#enddef
 
 
 def get_addrs_linux():
-	ret = {} 
+	ret = {}
 
 	lines = call('ip addr').split('\n')
 
@@ -98,7 +90,6 @@ def get_addrs_linux():
 		if not 'ether' in line \
 		and not 'inet' in line:
 			continue
-		#endif
 
 		if 'temporary' in line: continue
 
@@ -114,7 +105,6 @@ def get_addrs_linux():
 			addr_type = 'inet'
 		else:
 			logging.error('unknown address type! (%s)' % addr_type)
-		#endif
 
 		try:
 			addr = addr.split('/')[0]
@@ -130,19 +120,15 @@ def get_addrs_linux():
 			if ipaddress.ip_address(addr).is_private: continue
 			if ipaddress.ip_address(addr).is_loopback: continue
 			if ipaddress.ip_address(addr).is_link_local: continue
-		#endif
 
 		if not addr_type in ret: ret[addr_type] = set()
 		ret[addr_type].add(addr)
-	#endfor
 
 	# disable ether for now
 	if 'ether' in ret:
 		del ret['ether']
-	#endif
 
 	return ret
-#enddef
 
 
 def send_addrs(url_prefix, host, version, addrs):
@@ -153,7 +139,6 @@ def send_addrs(url_prefix, host, version, addrs):
 	#	for k,v in i.items(): r.append('%s=%s' % (k, v))
 	#	r = ','.join(r)
 	#	recs.append(r)
-	#endfor
 	#logging.debug('recs = %s' % recs)
 
 	logging.debug('sending info to %s' % url_prefix)
@@ -177,13 +162,10 @@ def send_addrs(url_prefix, host, version, addrs):
 		else:
 			logging.warning('got NOT OK')
 			for i in u: logging.warning(i.strip())
-		#endif
 	except urllib.error.URLError:
 		logging.exception('urllib.request.urlopen() exception, probably failed to connect')
-	#endtry
 
 	return False
-#enddef
 
 
 class MainLoop:
@@ -196,7 +178,6 @@ class MainLoop:
 
 		self._run = False
 		self._refresh = False
-	#enddef
 
 	def run(self):
 		logging.debug('main loop')
@@ -219,7 +200,6 @@ class MainLoop:
 				else:
 					logging.debug('some addresses, setting interval to %s' % self.interval)
 					interval = self.interval
-				#endif
 
 				# disable this for now since we also want to use this as 'i am alive' signal
 				#if self._refresh or addrs != addrs_old:
@@ -229,26 +209,18 @@ class MainLoop:
 						addrs_old = addrs
 					else:
 						logging.warning('send_addrs failed')
-					#endif
 				else:
 					logging.debug('no change, doing nothing')
-				#endif
 
 				self._refresh = False
 				t_last = t
 			else:
 				time.sleep(0.1)
-			#endif
-		#endwhile
 
 		logging.debug('exited main loop')
-	#enddef
 
 	def stop(self):
 		self._run = False
-	#enddef
 
 	def refresh(self):
 		self._refresh = True
-	#enddef
-#endclass

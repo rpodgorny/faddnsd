@@ -33,7 +33,6 @@ from cherrypy.process.plugins import Monitor
 # TODO: get rid of this global shit
 class G:
 	pass
-#endclass
 g = G()
 
 # TODO: global shit
@@ -46,7 +45,6 @@ do_pair = set()
 
 def dt_format(dt):
 	return dt.strftime('%Y-%m-%d %H:%M:%S')
-#enddef
 
 
 class FADDNSServer(object):
@@ -55,7 +53,6 @@ class FADDNSServer(object):
 		if not host:
 			logging.info('no host specified, ignoring')
 			return 'no host specified'
-		#endif
 
 		rec = {}
 		rec['host'] = host
@@ -69,18 +66,14 @@ class FADDNSServer(object):
 				rec[af] = set([kwargs[af], ])
 			else:
 				rec[af] = set(kwargs[af])
-			#endif
-		#endfor
 
 		if rec != recs.get(host):
 			recs[host] = rec
 			changed.add(host)
-		#endif
 
 		datetimes[host] = datetime.datetime.now()
 
 		return 'OK'
-	#enddef
 
 	@cherrypy.expose
 	def dump(self):
@@ -94,19 +87,14 @@ class FADDNSServer(object):
 			for k, v in rec.items():
 				if isinstance(v, set):
 					recs_with_time[host][k] = list(v)
-				#endif
-			#endfor
-		#endfor
 
 		return json.dumps(recs_with_time, indent=4)
-	#enddef
 
 	@cherrypy.expose
 	def addhost(self, host):
 		logging.info('forced addition of %s' % host)
 		do_pair.add(host)
 		return 'will add %s' % host
-	#enddef
 
 	@cherrypy.expose
 	def listhosts(self):
@@ -129,8 +117,6 @@ class FADDNSServer(object):
 					ret += '</td>'
 				else:
 					ret += '<td></td>'
-				#endif
-			#endfor
 
 			ret += '<td>%s</td>' % rec['remote_addr']
 
@@ -138,32 +124,26 @@ class FADDNSServer(object):
 				ret += '<td><a href="/addhost/?host=%s">add</a></td>' % host
 			else:
 				ret += '<td></td>'
-			#endif
 
 			ret += '</tr>'
-		#endfor
 
 		ret += '</table></body></html>'
 		return ret
-	#enddef
-#endclass
 
 
 def check_zone(zone, fn):
 	logging.debug('check_zone')
 
-	cmd = 'named-checkzone %s %s' % (zone, fn) 
+	cmd = 'named-checkzone %s %s' % (zone, fn)
 
 	try:
 		out = subprocess.check_output(cmd, shell=True).decode()
 	except subprocess.CalledProcessError:
 		logging.exception(cmd)
 		return False
-	#endtry
 
 	logging.debug(out)
 	return True
-#enddef
 
 
 def update_serial(serial_fn, out_fn):
@@ -189,19 +169,14 @@ def update_serial(serial_fn, out_fn):
 				serial_done = True
 
 				logging.debug('serial: %s -> %s' % (serial, serial + 1))
-			#endif
 		else:
 			out_file.write(line)
-		#endif
-	#endfor
 
 	if not serial_done:
 		logging.error('failed to update serial')
-	#endif
 
 	serial_file.close()
 	out_file.close()
-#enddef
 
 
 def generate_bind_lines(rec, dt):
@@ -220,11 +195,8 @@ def generate_bind_lines(rec, dt):
 
 			ret += '%s\t%s\t%s\t%s ; @faddns %s\n' % (host, ttl, dns_f, a, dt_format(dt))
 			logging.debug('%s %s %s' % (host, af, a))
-		#endfor
-	#endfor
 
 	return ret
-#enddef
 
 
 def update_zone(zone_fn, out_fn, recs):
@@ -243,7 +215,6 @@ def update_zone(zone_fn, out_fn, recs):
 		if not m:
 			out_file.write(line)
 			continue
-		#endif
 
 		logging.debug(m.groups())
 		m_host, m_ttl, m_typ, m_addr = m.groups()
@@ -253,7 +224,6 @@ def update_zone(zone_fn, out_fn, recs):
 		if not '@faddns' in line:
 			out_file.write(line)
 			continue
-		#endif
 
 		host = line.split()[0].lower()
 
@@ -263,7 +233,6 @@ def update_zone(zone_fn, out_fn, recs):
 			logging.debug('%s not in changes, skipping' % host)
 			out_file.write(line)
 			continue
-		#endif
 
 		rec = recs[host]
 
@@ -278,8 +247,6 @@ def update_zone(zone_fn, out_fn, recs):
 		else:
 			logging.debug('change contains no usable data, keeping old record')
 			out_file.write(line)
-		#endif
-	#endfor
 
 	# these are the unprocessed hosts
 	for host in changed.copy():
@@ -299,14 +266,11 @@ def update_zone(zone_fn, out_fn, recs):
 		else:
 			logging.debug('change contains no usable data, keeping old record')
 			out_file.write(line)
-		#endif
-	#endfor
 
 	zone_file.close()
 	out_file.close()
 
 	return changed - written
-#enddef
 
 
 # TODO: rename to something better
@@ -319,7 +283,6 @@ def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 	elif not do_pair and changed == unpaired:
 		logging.info('only unforced hosts in changes, doing nothing')
 		return
-	#endif
 
 	unpaired = update_zone(zone_fn, out_fn, recs)
 
@@ -328,7 +291,6 @@ def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 	elif not check_zone(zone, out_fn):
 		logging.error('zone check error!')
 		return
-	#endif
 
 	cmd = 'mv %s %s' % (out_fn, zone_fn)
 	subprocess.call(cmd, shell=True)
@@ -343,19 +305,15 @@ def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 
 	for host in changed:
 		logging.warning('%s not processed!' % host)
-	#endfor
-#endfor
 
 
 # TODO: rename
 def xxx():
 	do_dns_update(g.zone, g.zone_fn, g.serial_fn, g.out_fn)
-#enddef
 
 
 def logging_setup(level):
 	logging.basicConfig(level=level)
-#enddef
 
 
 def main():
@@ -366,7 +324,6 @@ def main():
 		logging_setup('DEBUG')
 	else:
 		logging_setup('INFO')
-	#endif
 
 	zone = args['<zone>']
 	zone_fn = args['<zone_fn>']
@@ -376,13 +333,11 @@ def main():
 	if not serial_fn:
 		logging.info('no serial_fn specified, assuming it to be the same as zone_fn')
 		serial_fn = zone_fn
-	#endif
-	 
+
 	if args['--port']:
 		port = int(args['--port'])
 	else:
 		port = 8765
-	#endif
 
 	try:
 		f = open(zone_fn, 'r')
@@ -390,7 +345,6 @@ def main():
 	except:
 		logging.critical('unable to open %s for reading' % zone_fn)
 		return 1
-	#endtry
 
 	try:
 		f = open(serial_fn, 'r')
@@ -398,7 +352,6 @@ def main():
 	except:
 		logging.critical('unable to open %s for reading' % serial_fn)
 		return 1
-	#endtry
 
 	server = FADDNSServer()
 
@@ -425,9 +378,7 @@ def main():
 	cherrypy.engine.block()
 
 	return 0
-#enddef
 
 
 if __name__ == '__main__':
 	sys.exit(main())
-#enddef
