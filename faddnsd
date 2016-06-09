@@ -19,6 +19,7 @@ Options:
 from faddns.version import __version__
 
 import sys
+import os
 import cherrypy
 import datetime
 import logging
@@ -27,6 +28,7 @@ import json
 import time
 import subprocess
 import re
+import ipaddress
 from cherrypy.process.plugins import Monitor
 
 
@@ -100,7 +102,7 @@ class FADDNSServer(object):
 	def listhosts(self):
 		ret = ''
 		ret += '<html><body><table>'
-		ret += '<tr><th>hostname</th><th>datetime</th><th>version</th><th>ehter</th><th>inet</th><th>inet6</th><th>remote_addr</th><th>ops</th></tr>'
+		ret += '<tr><th>hostname</th><th>datetime</th><th>version</th><th>ether</th><th>inet</th><th>inet6</th><th>remote_addr</th><th>ops</th></tr>'
 
 		for host in sorted(recs.keys()):
 			rec = recs[host]
@@ -149,7 +151,7 @@ def check_zone(zone, fn):
 def update_serial(serial_fn, out_fn):
 	# let's copy the file first to retain all attributes
 	cmd = 'cp -a %s %s' % (serial_fn, out_fn)
-	subprocess.call(cmd, shell=True)
+	subprocess.check_call(cmd, shell=True)
 
 	serial_done = False
 
@@ -186,6 +188,10 @@ def generate_bind_lines(rec, dt):
 		if not af in rec: continue
 
 		for a in rec[af]:
+			if ipaddress.ip_address(a).is_private: continue
+			if ipaddress.ip_address(a).is_loopback: continue
+			if ipaddress.ip_address(a).is_link_local: continue
+
 			dns_f = {'inet': 'a', 'inet6': 'aaaa'}[af]
 
 			host = rec['host'].lower()
@@ -204,7 +210,7 @@ def update_zone(zone_fn, out_fn, recs):
 
 	# let's copy the file first to retain all attributes
 	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
-	subprocess.call(cmd, shell=True)
+	subprocess.check_call(cmd, shell=True)
 
 	zone_file = open(zone_fn, 'r')
 	out_file = open(out_fn, 'w')
@@ -273,6 +279,12 @@ def update_zone(zone_fn, out_fn, recs):
 	return changed - written
 
 
+def sign_zone(zone, serial_fn):
+	cmd = 'cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn)
+	subprocess.check_call(cmd, shell=True)
+#enddef
+
+
 # TODO: rename to something better
 def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 	global unpaired
@@ -293,15 +305,17 @@ def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 		return
 
 	cmd = 'mv %s %s' % (out_fn, zone_fn)
-	subprocess.call(cmd, shell=True)
+	subprocess.check_call(cmd, shell=True)
 
 	update_serial(serial_fn, out_fn)
 
 	cmd = 'mv %s %s' % (out_fn, serial_fn)
-	subprocess.call(cmd, shell=True)
+	subprocess.check_call(cmd, shell=True)
+
+	sign_zone(zone, serial_fn)
 
 	cmd = 'rndc reload %s' % zone
-	subprocess.call(cmd, shell=True)
+	subprocess.check_call(cmd, shell=True)
 
 	for host in changed:
 		logging.warning('%s not processed!' % host)
