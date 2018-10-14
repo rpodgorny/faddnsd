@@ -65,7 +65,7 @@ class FADDNSServer(object):
 </html>
 '''
 		rec = {}
-		rec['host'] = host
+		rec['hostname'] = host
 		rec['version'] = version
 		rec['remote_addr'] = cherrypy.request.remote.ip
 		for af in 'ether', 'inet', 'inet6':
@@ -158,11 +158,8 @@ def update_serial(serial_fn, out_fn):
 				serial = re.search('(\d+)', line).group(0)
 				serial = int(serial)
 				line = line.replace(str(serial), str(serial + 1))
-
 				out_file.write(line)
-
 				serial_done = True
-
 				logging.debug('serial: %s -> %s' % (serial, serial + 1))
 		else:
 			out_file.write(line)
@@ -185,7 +182,7 @@ def generate_bind_lines(rec, dt):
 			or ipaddress.ip_address(a).is_link_local:
 				continue
 			dns_f = {'inet': 'a', 'inet6': 'aaaa'}[af]
-			host = rec['host'].lower()
+			host = rec['hostname'].lower()
 			#ttl = rec['ttl'].upper()
 			ttl = '10M'
 			dns_f = dns_f.upper()
@@ -236,7 +233,6 @@ def update_zone(zone_fn, out_fn, recs):
 		changed.remove(host)
 
 		out = generate_bind_lines(rec, datetimes[host])
-
 		if out:
 			out_file.write(out)
 		else:
@@ -245,17 +241,14 @@ def update_zone(zone_fn, out_fn, recs):
 
 	# these are the unprocessed hosts
 	for host in changed.copy():
-		if not host in do_pair: continue
-
+		if not host in do_pair:
+			continue
 		rec = recs[host]
-
 		logging.info('updating %s' % host)
 		written.add(host)
 		changed.remove(host)
-
 		# TODO: most of this is cut-n-pasted from above
 		out = generate_bind_lines(rec, datetimes[host])
-
 		if out:
 			out_file.write(out)
 		else:
@@ -264,7 +257,6 @@ def update_zone(zone_fn, out_fn, recs):
 
 	zone_file.close()
 	out_file.close()
-
 	return changed - written
 
 
