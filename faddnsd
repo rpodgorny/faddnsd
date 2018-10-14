@@ -106,15 +106,12 @@ class FADDNSServer(object):
 		ret = ''
 		ret += '<html><body><table>'
 		ret += '<tr><th>hostname</th><th>datetime</th><th>version</th><th>ether</th><th>inet</th><th>inet6</th><th>remote_addr</th><th>ops</th></tr>'
-
 		for host in sorted(recs.keys()):
 			rec = recs[host]
-
 			ret += '<tr>'
 			ret += '<td>%s</td>' % host
 			ret += '<td>%s</td>' % dt_format(datetimes[host])
 			ret += '<td>%s</td>' % rec['version']
-
 			for af in ('ether', 'inet', 'inet6'):
 				if af in rec:
 					ret += '<td>'
@@ -122,31 +119,24 @@ class FADDNSServer(object):
 					ret += '</td>'
 				else:
 					ret += '<td></td>'
-
 			ret += '<td>%s</td>' % rec['remote_addr']
-
 			if host in unpaired:
 				ret += '<td><a href="/addhost/?host=%s">add</a></td>' % host
 			else:
 				ret += '<td></td>'
-
 			ret += '</tr>'
-
 		ret += '</table></body></html>'
 		return ret
 
 
 def check_zone(zone, fn):
 	logging.debug('check_zone')
-
 	cmd = 'named-checkzone %s %s' % (zone, fn)
-
 	try:
 		out = subprocess.check_output(cmd, shell=True).decode()
 	except subprocess.CalledProcessError:
 		logging.exception(cmd)
 		return False
-
 	logging.debug(out)
 	return True
 
@@ -186,25 +176,21 @@ def update_serial(serial_fn, out_fn):
 
 def generate_bind_lines(rec, dt):
 	ret = ''
-
 	for af in ['inet', 'inet6']:
-		if not af in rec: continue
-
+		if not af in rec:
+			continue
 		for a in rec[af]:
-			if ipaddress.ip_address(a).is_private: continue
-			if ipaddress.ip_address(a).is_loopback: continue
-			if ipaddress.ip_address(a).is_link_local: continue
-
+			if ipaddress.ip_address(a).is_private \
+			or ipaddress.ip_address(a).is_loopback \
+			or ipaddress.ip_address(a).is_link_local:
+				continue
 			dns_f = {'inet': 'a', 'inet6': 'aaaa'}[af]
-
 			host = rec['host'].lower()
 			#ttl = rec['ttl'].upper()
 			ttl = '10M'
 			dns_f = dns_f.upper()
-
 			ret += '%s\t%s\t%s\t%s ; @faddns %s\n' % (host, ttl, dns_f, a, dt_format(dt))
 			logging.debug('%s %s %s' % (host, af, a))
-
 	return ret
 
 
@@ -285,7 +271,6 @@ def update_zone(zone_fn, out_fn, recs):
 def sign_zone(zone, serial_fn):
 	cmd = 'cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn)
 	subprocess.check_call(cmd, shell=True)
-#enddef
 
 
 # TODO: rename to something better
@@ -357,15 +342,13 @@ def main():
 		port = 8765
 
 	try:
-		f = open(zone_fn, 'r')
-		f.close()
+		open(zone_fn, 'r').close()
 	except:
 		logging.critical('unable to open %s for reading' % zone_fn)
 		return 1
 
 	try:
-		f = open(serial_fn, 'r')
-		f.close()
+		open(serial_fn, 'r').close()
 	except:
 		logging.critical('unable to open %s for reading' % serial_fn)
 		return 1
