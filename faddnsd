@@ -40,6 +40,7 @@ g = G()
 # TODO: global shit
 recs = {}
 datetimes = {}
+ts = {}
 changed = set()
 unpaired = set()
 do_pair = set()
@@ -78,6 +79,7 @@ class FADDNSServer(object):
 			recs[host] = rec
 			changed.add(host)
 		datetimes[host] = datetime.datetime.now()
+		ts[host] = time.time()
 		return 'OK'
 
 	@cherrypy.expose
@@ -85,6 +87,7 @@ class FADDNSServer(object):
 		for host, rec in recs.items():
 			r = rec
 			r['datetime'] = dt_format(datetimes[host])
+			r['t'] = ts[host]
 			# sets are not serializable to json -> convert them to lists
 			for k, v in rec.items():
 				if isinstance(v, set):
