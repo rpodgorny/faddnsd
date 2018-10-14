@@ -54,43 +54,43 @@ class FADDNSServer(object):
 	def index(self, version=None, host=None, *args, **kwargs):
 		if not host:
 			logging.info('no host specified, ignoring')
-			return 'no host specified'
-
+			return '''
+<html>
+<body>
+<p>no host specified</p>
+<p><a href="listhosts">listhosts</a></p>
+<p><a href="dump">dump</a></p>
+</body>
+</html>
+'''
 		rec = {}
 		rec['host'] = host
 		rec['version'] = version
 		rec['remote_addr'] = cherrypy.request.remote.ip
-
 		for af in 'ether', 'inet', 'inet6':
-			if not af in kwargs: continue
-
+			if not af in kwargs:
+				continue
 			if isinstance(kwargs[af], str):
 				rec[af] = set([kwargs[af], ])
 			else:
 				rec[af] = set(kwargs[af])
-
 		if rec != recs.get(host):
 			recs[host] = rec
 			changed.add(host)
-
 		datetimes[host] = datetime.datetime.now()
-
 		return 'OK'
 
 	@cherrypy.expose
 	def dump(self):
-		recs_with_time = {}
-
 		for host, rec in recs.items():
-			recs_with_time[host] = rec
-			recs_with_time[host]['datetime'] = dt_format(datetimes[host])
-
+			r = rec
+			r['datetime'] = dt_format(datetimes[host])
 			# sets are not serializable to json -> convert them to lists
 			for k, v in rec.items():
 				if isinstance(v, set):
-					recs_with_time[host][k] = list(v)
-
-		return json.dumps(recs_with_time, indent=4)
+					r[k] = list(v)
+			yield json.dumps(r) + '\n'
+		return '\n'
 
 	@cherrypy.expose
 	def addhost(self, host):
