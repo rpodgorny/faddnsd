@@ -95,6 +95,22 @@ class FADDNSServer(object):
 			yield json.dumps(r) + '\n'
 		return '\n'
 
+	# TODO: i added this for vlada to simplify his life (as he's unable to parse jsons format above)
+	# TODO: basically just a cut-n-paste of the code above - unite!
+	@cherrypy.expose
+	def dump2(self):
+		ret = []
+		for host, rec in recs.items():
+			r = rec
+			r['datetime'] = dt_format(datetimes[host])
+			r['t'] = ts[host]
+			# sets are not serializable to json -> convert them to lists
+			for k, v in rec.items():
+				if isinstance(v, set):
+					r[k] = list(v)
+			ret.append(r)
+		return json.dumps(ret)
+
 	@cherrypy.expose
 	def addhost(self, host):
 		logging.info('forced addition of %s' % host)
