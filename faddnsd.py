@@ -13,6 +13,7 @@ Arguments:
 
 Options:
   -p <port>, --port=<port>  Port number.
+  --no-zone-reload          Don't reload zone file (by invoking rndc).
   --debug                   Enable debug output.
 '''
 
@@ -30,24 +31,27 @@ import subprocess
 import re
 import ipaddress
 from cherrypy.process.plugins import Monitor
+import threading
 
-
-# TODO: get rid of this global shit
-class G:
-	pass
-g = G()
 
 # TODO: global shit
+g = {}
 recs = {}
 datetimes = {}
 ts = {}
 changed = set()
 unpaired = set()
 do_pair = set()
+t_zone = None
 
 
 def dt_format(dt):
 	return dt.strftime('%Y-%m-%d %H:%M:%S')
+
+
+def call(cmd):
+	print("+ %s" % cmd)
+	return subprocess.check_call(cmd, shell=True)
 
 
 class FADDNSServer(object):
@@ -64,17 +68,15 @@ class FADDNSServer(object):
 </body>
 </html>
 '''
-		rec = {}
-		rec['hostname'] = host
-		rec['version'] = version
-		rec['remote_addr'] = cherrypy.request.remote.ip
-		for af in 'ether', 'inet', 'inet6':
+		rec = {
+			'hostname': host,
+			'version': version,
+			'remote_addr': cherrypy.request.remote.ip,
+		}
+		for af in ['ether', 'inet', 'inet6']:
 			if not af in kwargs:
 				continue
-			if isinstance(kwargs[af], str):
-				rec[af] = set([kwargs[af], ])
-			else:
-				rec[af] = set(kwargs[af])
+			rec[af] = set([kwargs[af]]) if isinstance(kwargs[af], str) else set(kwargs[af])
 		if rec != recs.get(host):
 			recs[host] = rec
 			changed.add(host)
@@ -86,8 +88,10 @@ class FADDNSServer(object):
 	def dump(self):
 		for host, rec in recs.items():
 			r = rec
-			r['datetime'] = dt_format(datetimes[host])
-			r['t'] = ts[host]
+			r.update({
+				'datetime': dt_format(datetimes[host]),
+				't': ts[host],
+			})
 			# sets are not serializable to json -> convert them to lists
 			for k, v in rec.items():
 				if isinstance(v, set):
@@ -102,8 +106,10 @@ class FADDNSServer(object):
 		ret = []
 		for host, rec in recs.items():
 			r = rec
-			r['datetime'] = dt_format(datetimes[host])
-			r['t'] = ts[host]
+			r.update({
+				'datetime': dt_format(datetimes[host]),
+				't': ts[host],
+			})
 			# sets are not serializable to json -> convert them to lists
 			for k, v in rec.items():
 				if isinstance(v, set):
@@ -159,8 +165,7 @@ def check_zone(zone, fn):
 
 def update_serial(serial_fn, out_fn):
 	# let's copy the file first to retain all attributes
-	cmd = 'cp -a %s %s' % (serial_fn, out_fn)
-	subprocess.check_call(cmd, shell=True)
+	call('cp -a %s %s' % (serial_fn, out_fn))
 
 	serial_done = False
 
@@ -211,8 +216,7 @@ def update_zone(zone_fn, out_fn, recs):
 	written = set()
 
 	# let's copy the file first to retain all attributes
-	cmd = 'cp -a %s %s' % (zone_fn, out_fn)
-	subprocess.check_call(cmd, shell=True)
+	call('cp -a %s %s' % (zone_fn, out_fn))
 
 	zone_file = open(zone_fn, 'r')
 	out_file = open(out_fn, 'w')
@@ -235,7 +239,8 @@ def update_zone(zone_fn, out_fn, recs):
 
 		host = line.split()[0].lower()
 
-		if host in written: continue
+		if host in written:
+			continue
 
 		if not host in changed:
 			logging.debug('%s not in changes, skipping' % host)
@@ -276,13 +281,8 @@ def update_zone(zone_fn, out_fn, recs):
 	return changed - written
 
 
-def sign_zone(zone, serial_fn):
-	cmd = 'cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn)
-	subprocess.check_call(cmd, shell=True)
-
-
 # TODO: rename to something better
-def do_dns_update(zone, zone_fn, serial_fn, out_fn):
+def do_dns_update(zone, zone_fn, serial_fn, out_fn, no_zone_reload=False):
 	global unpaired
 
 	if not changed:
@@ -300,26 +300,31 @@ def do_dns_update(zone, zone_fn, serial_fn, out_fn):
 		logging.error('zone check error!')
 		return
 
-	cmd = 'mv %s %s' % (out_fn, zone_fn)
-	subprocess.check_call(cmd, shell=True)
+	call('mv %s %s' % (out_fn, zone_fn))
 
 	update_serial(serial_fn, out_fn)
 
-	cmd = 'mv %s %s' % (out_fn, serial_fn)
-	subprocess.check_call(cmd, shell=True)
+	call('mv %s %s' % (out_fn, serial_fn))
 
-	sign_zone(zone, serial_fn)
+	call('cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn))
 
-	cmd = 'rndc reload %s' % zone
-	subprocess.check_call(cmd, shell=True)
+	if not no_zone_reload:
+		call('rndc reload %s' % zone)
 
 	for host in changed:
 		logging.warning('%s not processed!' % host)
 
 
 # TODO: rename
-def xxx():
-	do_dns_update(g.zone, g.zone_fn, g.serial_fn, g.out_fn)
+_run = 1
+def the_loop():
+	global g
+	while _run:
+		t = time.time()
+		ts_max = max(ts.values()) if ts else None
+		if ts_max and t - ts_max > 10:  # TODO: hard-coded shit
+			do_dns_update(g["zone"], g["zone_fn"], g["serial_fn"], g["out_fn"], g["no_zone_reload"])
+		time.sleep(1)
 
 
 def logging_setup(level):
@@ -338,6 +343,7 @@ def main():
 	zone = args['<zone>']
 	zone_fn = args['<zone_fn>']
 	serial_fn = args['<serial_fn>']
+	no_zone_reload = args["--no-zone-reload"]
 	out_fn = '/tmp/%s.zone_tmp' % zone  # TODO: switch to tmpfile
 
 	if not serial_fn:
@@ -347,7 +353,7 @@ def main():
 	if args['--port']:
 		port = int(args['--port'])
 	else:
-		port = 8765
+		port = 80
 
 	try:
 		open(zone_fn, 'r').close()
@@ -361,18 +367,24 @@ def main():
 		logging.critical('unable to open %s for reading' % serial_fn)
 		return 1
 
+
 	server = FADDNSServer()
 
 	# TODO: this is ugly as hell!!!
-	g.zone = zone
-	g.zone_fn = zone_fn
-	g.serial_fn = serial_fn
-	g.out_fn = out_fn
+	global g
+	g = {
+		"zone": zone,
+		"zone_fn": zone_fn,
+		"serial_fn": serial_fn,
+		"out_fn": out_fn,
+		"no_zone_reload": no_zone_reload,
+	}
 
-	frequency = 60  # TODO: hard-coded shit
-
-	m = Monitor(cherrypy.engine, xxx, frequency=frequency, name='Worker')  # TODO: rename
-	m.subscribe()
+	#frequency = 60  # TODO: hard-coded shit
+	#m = Monitor(cherrypy.engine, xxx, frequency=frequency, name='Worker')  # TODO: rename
+	#m.subscribe()
+	thr = threading.Thread(target=the_loop)
+	thr.start()
 
 	cherrypy.server.socket_host = '0.0.0.0'
 	cherrypy.server.socket_port = port
@@ -384,6 +396,10 @@ def main():
 	cherrypy.tree.mount(server, '/')
 	cherrypy.engine.start()
 	cherrypy.engine.block()
+
+	global _run
+	_run = 0
+	thr.join()
 
 	return 0
 

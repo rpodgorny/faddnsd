@@ -1,2 +1,2 @@
 #!/bin/sh
-exec pipenv run python faddnsd.py "$@"
+exec pipenv run python3 faddnsd.py "$@"
