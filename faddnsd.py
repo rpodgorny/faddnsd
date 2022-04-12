@@ -58,7 +58,7 @@ class FADDNSServer(object):
 	@cherrypy.expose
 	def index(self, version=None, host=None, *args, **kwargs):
 		if not host:
-			logging.info('no host specified, ignoring')
+			logging.debug('no host specified, ignoring')
 			return '''
 <html>
 <body>
@@ -77,7 +77,9 @@ class FADDNSServer(object):
 			if not af in kwargs:
 				continue
 			rec[af] = set([kwargs[af]]) if isinstance(kwargs[af], str) else set(kwargs[af])
+		logging.debug("rec: %s" % rec)
 		if rec != recs.get(host):
+			logging.debug("rec change: %s" % rec)
 			recs[host] = rec
 			changed.add(host)
 		datetimes[host] = datetime.datetime.now()
@@ -164,32 +166,24 @@ def check_zone(zone, fn):
 
 
 def update_serial(serial_fn, out_fn):
-	# let's copy the file first to retain all attributes
-	call('cp -a %s %s' % (serial_fn, out_fn))
-
+	logging.debug("update_serial %s %s" % (serial_fn, out_fn))
+	call('cp -a %s %s' % (serial_fn, out_fn))  # let's copy the file first to retain all attributes
 	serial_done = False
-
-	serial_file = open(serial_fn, 'r')
-	out_file = open(out_fn, 'w')
-
-	for line in serial_file:
-		if 'erial' in line:
-			if not serial_done:
-				#serial = re.match('.*[0-9]+.*', line)
-				serial = re.search('(\d+)', line).group(0)
-				serial = int(serial)
-				line = line.replace(str(serial), str(serial + 1))
+	with open(serial_fn, 'r') as serial_file, open(out_fn, 'w') as out_file:
+		for line in serial_file:
+			if 'erial' in line:
+				if not serial_done:
+					#serial = re.match('.*[0-9]+.*', line)
+					serial = re.search('(\d+)', line).group(0)
+					serial = int(serial)
+					line = line.replace(str(serial), str(serial + 1))
+					out_file.write(line)
+					serial_done = True
+					logging.info('%s serial: %s -> %s' % (serial_fn, serial, serial + 1))
+			else:
 				out_file.write(line)
-				serial_done = True
-				logging.debug('serial: %s -> %s' % (serial, serial + 1))
-		else:
-			out_file.write(line)
-
-	if not serial_done:
-		logging.error('failed to update serial')
-
-	serial_file.close()
-	out_file.close()
+		if not serial_done:
+			logging.error('failed to update serial')
 
 
 def generate_bind_lines(rec, dt):
@@ -212,118 +206,121 @@ def generate_bind_lines(rec, dt):
 	return ret
 
 
-def update_zone(zone_fn, out_fn, recs):
+def update_zone(zone_fn, out_fn, recs, changed):
 	written = set()
 
 	# let's copy the file first to retain all attributes
 	call('cp -a %s %s' % (zone_fn, out_fn))
 
-	zone_file = open(zone_fn, 'r')
-	out_file = open(out_fn, 'w')
+	with open(zone_fn, 'r') as zone_file, open(out_fn, 'w') as out_file:
+		for line in zone_file:
+			'''
+			m = re.match('(\S+)\t(\S+)\t(\S+)\t(\S+).*', line)
+			if not m:
+				out_file.write(line)
+				continue
 
-	for line in zone_file:
-		'''
-		m = re.match('(\S+)\t(\S+)\t(\S+)\t(\S+).*', line)
-		if not m:
-			out_file.write(line)
-			continue
+			logging.debug(m.groups())
+			m_host, m_ttl, m_typ, m_addr = m.groups()
+			host = m_host.lower()
+			'''
 
-		logging.debug(m.groups())
-		m_host, m_ttl, m_typ, m_addr = m.groups()
-		host = m_host.lower()
-		'''
+			if not '@faddns' in line:
+				out_file.write(line)
+				continue
+			host = line.split()[0].lower()
+			if host in written:
+				continue
+			if not host in changed:
+				logging.debug('%s not in changes, skipping' % host)
+				out_file.write(line)
+				continue
 
-		if not '@faddns' in line:
-			out_file.write(line)
-			continue
+			rec = recs[host]
 
-		host = line.split()[0].lower()
+			logging.info('updating %s' % host)
+			written.add(host)
+			changed.remove(host)  # TODO: fucking side effect!
 
-		if host in written:
-			continue
+			out = generate_bind_lines(rec, datetimes[host])
+			if out:
+				out_file.write(out)
+			else:
+				logging.debug('change contains no usable data, keeping old record')
+				out_file.write(line)
 
-		if not host in changed:
-			logging.debug('%s not in changes, skipping' % host)
-			out_file.write(line)
-			continue
+		# these are the unprocessed hosts
+		for host in changed.copy():
+			if not host in do_pair:
+				continue
+			rec = recs[host]
+			logging.info('updating %s' % host)
+			written.add(host)
+			changed.remove(host)
+			# TODO: most of this is cut-n-pasted from above
+			out = generate_bind_lines(rec, datetimes[host])
+			if out:
+				out_file.write(out)
+			else:
+				logging.debug('change contains no usable data, keeping old record')
+				out_file.write(line)
 
-		rec = recs[host]
-
-		logging.info('updating %s' % host)
-		written.add(host)
-		changed.remove(host)
-
-		out = generate_bind_lines(rec, datetimes[host])
-		if out:
-			out_file.write(out)
-		else:
-			logging.debug('change contains no usable data, keeping old record')
-			out_file.write(line)
-
-	# these are the unprocessed hosts
-	for host in changed.copy():
-		if not host in do_pair:
-			continue
-		rec = recs[host]
-		logging.info('updating %s' % host)
-		written.add(host)
-		changed.remove(host)
-		# TODO: most of this is cut-n-pasted from above
-		out = generate_bind_lines(rec, datetimes[host])
-		if out:
-			out_file.write(out)
-		else:
-			logging.debug('change contains no usable data, keeping old record')
-			out_file.write(line)
-
-	zone_file.close()
-	out_file.close()
 	return changed - written
 
 
 # TODO: rename to something better
-def do_dns_update(zone, zone_fn, serial_fn, out_fn, no_zone_reload=False):
+def do_dns_update(changed, zone, zone_fn, serial_fn, out_fn, no_zone_reload=False):
 	global unpaired
 
 	if not changed:
-		logging.info('no changes found, doing nothing')
+		logging.debug('no changes found, doing nothing')
 		return
 	elif not do_pair and changed == unpaired:
-		logging.info('only unforced hosts in changes, doing nothing')
+		logging.debug('only unforced hosts in changes, doing nothing')
 		return
 
-	unpaired = update_zone(zone_fn, out_fn, recs)
+	unpaired = update_zone(zone_fn, out_fn, recs, changed)
 
 	if zone_fn != serial_fn:
-		logging.info('zone file and serial file are not the same, skipping check')
+		logging.debug('zone file and serial file are not the same, skipping check')
 	elif not check_zone(zone, out_fn):
 		logging.error('zone check error!')
 		return
+
+	assert os.path.getsize(out_fn) > 10  # TODO: hard-coded shit
 
 	call('mv %s %s' % (out_fn, zone_fn))
 
 	update_serial(serial_fn, out_fn)
 
+	assert os.path.getsize(out_fn) > 10  # TODO: hard-coded shit
+
 	call('mv %s %s' % (out_fn, serial_fn))
 
 	call('cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn))
 
-	if not no_zone_reload:
-		call('rndc reload %s' % zone)
-
 	for host in changed:
 		logging.warning('%s not processed!' % host)
+
+	if not no_zone_reload:
+		call('rndc reload %s' % zone)
 
 
 # TODO: rename
 _run = 1
 def the_loop():
 	global g
+	global changed
+	global ts
+	t_last = 0
 	while _run:
 		t = time.time()
 		ts_max = max(ts.values()) if ts else None
-		if ts_max and t - ts_max > 10:  # TODO: hard-coded shit
-			do_dns_update(g["zone"], g["zone_fn"], g["serial_fn"], g["out_fn"], g["no_zone_reload"])
+		#if (ts_max and (t - ts_max > 5)) or (t - t_last > 30):  # TODO: hard-coded shit
+		if t - t_last > 30:  # TODO: hard-coded shit
+			print("HOVNO", t, t_last, ts_max)
+			t_last = t
+			do_dns_update(changed, g["zone"], g["zone_fn"], g["serial_fn"], g["out_fn"], g["no_zone_reload"])
 		time.sleep(1)
 
 
@@ -334,26 +331,25 @@ def logging_setup(level):
 def main():
 	args = docopt.docopt(__doc__, version=__version__)
 
-	debug = args['--debug']
-	if debug:
-		logging_setup('DEBUG')
-	else:
-		logging_setup('INFO')
+	debug = args["--debug"]
+	logging_setup("DEBUG" if debug else "INFO")
+	if not debug:
+		# TODO: none of this shit seems to be working :-( - ...well, is does. ...but which one? i don't care for now...
+		cherrypy.log.access_log.propagate = False
+		cherrypy.config.update({'log.access_file': ''})
+		cherrypy.config.update({'log.screen': False})
 
 	zone = args['<zone>']
 	zone_fn = args['<zone_fn>']
 	serial_fn = args['<serial_fn>']
 	no_zone_reload = args["--no-zone-reload"]
-	out_fn = '/tmp/%s.zone_tmp' % zone  # TODO: switch to tmpfile
+	out_fn = '/tmp/%s.zone_tmp' % zone
 
 	if not serial_fn:
 		logging.info('no serial_fn specified, assuming it to be the same as zone_fn')
 		serial_fn = zone_fn
 
-	if args['--port']:
-		port = int(args['--port'])
-	else:
-		port = 80
+	port = int(args['--port']) if args['--port'] else 80
 
 	try:
 		open(zone_fn, 'r').close()
@@ -366,7 +362,6 @@ def main():
 	except:
 		logging.critical('unable to open %s for reading' % serial_fn)
 		return 1
-
 
 	server = FADDNSServer()
 
