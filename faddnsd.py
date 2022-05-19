@@ -299,7 +299,7 @@ def do_dns_update(changed, zone, zone_fn, serial_fn, out_fn, no_zone_reload=Fals
 
 	call('cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn))
 
-	for host in changed:
+	for host in changed.copy():
 		logging.warning('%s not processed!' % host)
 
 	if not no_zone_reload:
