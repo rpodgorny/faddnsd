@@ -74,7 +74,7 @@ class FADDNSServer(object):
 			'remote_addr': cherrypy.request.remote.ip,
 		}
 		for af in ['ether', 'inet', 'inet6']:
-			if not af in kwargs:
+			if af not in kwargs:
 				continue
 			rec[af] = set([kwargs[af]]) if isinstance(kwargs[af], str) else set(kwargs[af])
 		logging.debug("rec: %s" % rec)
@@ -189,7 +189,7 @@ def update_serial(serial_fn, out_fn):
 def generate_bind_lines(rec, dt):
 	ret = ''
 	for af in ['inet', 'inet6']:
-		if not af in rec:
+		if af not in rec:
 			continue
 		for a in rec[af]:
 			if ipaddress.ip_address(a).is_private \
@@ -225,13 +225,13 @@ def update_zone(zone_fn, out_fn, recs, changed):
 			host = m_host.lower()
 			'''
 
-			if not '@faddns' in line:
+			if '@faddns' not in line:
 				out_file.write(line)
 				continue
 			host = line.split()[0].lower()
 			if host in written:
 				continue
-			if not host in changed:
+			if host not in changed:
 				logging.debug('%s not in changes, skipping' % host)
 				out_file.write(line)
 				continue
@@ -251,7 +251,7 @@ def update_zone(zone_fn, out_fn, recs, changed):
 
 		# these are the unprocessed hosts
 		for host in changed.copy():
-			if not host in do_pair:
+			if host not in do_pair:
 				continue
 			rec = recs[host]
 			logging.info('updating %s' % host)
