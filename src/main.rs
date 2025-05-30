@@ -1,10 +1,9 @@
 use faddnsd::*;
-use chrono::{DateTime, Utc};
 use clap::Parser;
 use std::{
     collections::{HashMap, HashSet},
     fs::File as StdFile, // Alias to avoid conflict with tokio::fs::File
-    io::{BufRead, BufReader, Write},
+    io::{BufRead, Write},
     net::SocketAddr,
     path::{PathBuf},
     sync::Arc,
