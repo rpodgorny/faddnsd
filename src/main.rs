@@ -212,7 +212,7 @@ async fn update_serial_in_file(serial_fn: &Path, out_fn: &Path) -> Result<(), st
 
     for line_result in reader.lines() {
         let mut line = line_result?;
-        if !serial_done && line.to_lowercase().contains("serial") {
+        if !serial_done && line.to_lowercase().contains("erial") {
             // Python: 'erial' in line
             if let Some(caps) = serial_re.find(&line) {
                 // Python: re.search('(\d+)', line).group(0)
