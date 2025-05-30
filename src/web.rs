@@ -96,7 +96,35 @@ pub async fn root_handler(
     "OK".into_response()
 }
 
-pub async fn dump_handler(State(state): State<AppState>) -> Json<Vec<DumpEntry>> {
+pub async fn dump_handler(State(state): State<AppState>) -> impl IntoResponse {
+    let records_guard = state.records.read().await;
+    let datetimes_guard = state.datetimes.read().await;
+    let timestamps_guard = state.timestamps.read().await;
+
+    let mut result = String::new();
+
+    for (host, rec_ref) in records_guard.iter() {
+        let rec_clone = rec_ref.clone();
+
+        let dump_entry = DumpEntry {
+            record: rec_clone,
+            datetime: datetimes_guard
+                .get(host)
+                .map_or_else(String::new, dt_format),
+            t: timestamps_guard.get(host).copied().unwrap_or(0),
+        };
+        
+        if let Ok(json_line) = serde_json::to_string(&dump_entry) {
+            result.push_str(&json_line);
+            result.push('\n');
+        }
+    }
+    result.push('\n');
+    
+    result
+}
+
+pub async fn dump2_handler(State(state): State<AppState>) -> Json<Vec<DumpEntry>> {
     let records_guard = state.records.read().await;
     let datetimes_guard = state.datetimes.read().await;
     let timestamps_guard = state.timestamps.read().await;
@@ -192,6 +220,7 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         .route("/", get(root_handler))
         .route("/dump", get(dump_handler))
+        .route("/dump2", get(dump2_handler))
         .route("/addhost", get(addhost_handler))
         .route("/listhosts", get(listhosts_handler))
         .with_state(state)
