@@ -1,10 +1,4 @@
-use axum::{
-    extract::{ConnectInfo, Query, State},
-    http::HeaderMap,
-    response::{Html, IntoResponse, Json},
-    routing::get,
-    Router,
-};
+mod web;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use regex::Regex;
@@ -51,37 +45,37 @@ struct Args {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
-struct Record {
-    hostname: String,
-    version: Option<String>,
-    remote_addr: String,
-    ether: Option<HashSet<String>>,
-    inet: Option<HashSet<String>>,
-    inet6: Option<HashSet<String>>,
+pub struct Record {
+    pub hostname: String,
+    pub version: Option<String>,
+    pub remote_addr: String,
+    pub ether: Option<HashSet<String>>,
+    pub inet: Option<HashSet<String>>,
+    pub inet6: Option<HashSet<String>>,
 }
 
 #[derive(Clone)]
-struct AppState {
-    config: Arc<AppConfig>,
-    records: Arc<RwLock<HashMap<String, Record>>>,
-    datetimes: Arc<RwLock<HashMap<String, DateTime<Utc>>>>,
-    timestamps: Arc<RwLock<HashMap<String, i64>>>, // Unix timestamp
-    changed_hosts: Arc<RwLock<HashSet<String>>>,
-    unpaired_hosts: Arc<RwLock<HashSet<String>>>,
-    do_pair_hosts: Arc<RwLock<HashSet<String>>>,
+pub struct AppState {
+    pub config: Arc<AppConfig>,
+    pub records: Arc<RwLock<HashMap<String, Record>>>,
+    pub datetimes: Arc<RwLock<HashMap<String, DateTime<Utc>>>>,
+    pub timestamps: Arc<RwLock<HashMap<String, i64>>>, // Unix timestamp
+    pub changed_hosts: Arc<RwLock<HashSet<String>>>,
+    pub unpaired_hosts: Arc<RwLock<HashSet<String>>>,
+    pub do_pair_hosts: Arc<RwLock<HashSet<String>>>,
 }
 
-struct AppConfig {
-    zone: String,
-    zone_fn: PathBuf,
-    serial_fn: PathBuf,
-    out_fn: PathBuf, // Temporary file for zone updates
-    no_zone_reload: bool,
+pub struct AppConfig {
+    pub zone: String,
+    pub zone_fn: PathBuf,
+    pub serial_fn: PathBuf,
+    pub out_fn: PathBuf, // Temporary file for zone updates
+    pub no_zone_reload: bool,
 }
 
 // --- Utility Functions ---
 
-fn dt_format(dt: &DateTime<Utc>) -> String {
+pub fn dt_format(dt: &DateTime<Utc>) -> String {
     dt.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
@@ -598,199 +592,6 @@ async fn dns_update_background_loop(state: AppState) {
     }
 }
 
-// --- Axum Handlers ---
-
-#[derive(Deserialize, Debug)]
-struct UpdateRequestParams {
-    version: Option<String>,
-    host: Option<String>,
-    // Axum Query extractor handles multiple params with same name into Vec
-    // Python code handles single string or list of strings for ether, inet, inet6
-    // For simplicity, we'll expect them as Vec<String> if multiple, or String if single.
-    // Serde can deserialize "val" into Some(vec!["val"]) or ["val1", "val2"] into Some(vec!["val1", "val2"])
-    // if the field is Option<Vec<String>>. But kwargs in python is more flexible.
-    // Let's define helper structs for query parameters to handle single or multiple values.
-    #[serde(alias = "ether[]", default)]
-    ether: Option<Vec<String>>,
-    #[serde(alias = "inet[]", default)]
-    inet: Option<Vec<String>>,
-    #[serde(alias = "inet6[]", default)]
-    inet6: Option<Vec<String>>,
-}
-
-async fn root_handler(
-    State(state): State<AppState>,
-    Query(params): Query<UpdateRequestParams>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    headers: HeaderMap,
-) -> impl IntoResponse {
-    let host_name = match params.host {
-        Some(h) => h.to_lowercase(),
-        None => {
-            debug!("No host specified, ignoring");
-            return Html(
-                "<html><body><p>no host specified</p>
-                <p><a href=\"/listhosts\">listhosts</a></p>
-                <p><a href=\"/dump\">dump</a></p></body></html>",
-            )
-            .into_response();
-        }
-    };
-
-    let client_ip_str = if let Some(x_forwarded_for) = headers.get("x-forwarded-for") {
-        if let Ok(xff_str) = x_forwarded_for.to_str() {
-            // X-Forwarded-For can contain multiple IPs separated by commas, take the first one
-            xff_str.split(',').next().unwrap_or("").trim().to_string()
-        } else {
-            addr.ip().to_string()
-        }
-    } else {
-        addr.ip().to_string()
-    };
-
-    let current_record = Record {
-        hostname: host_name.clone(),
-        version: params.version,
-        remote_addr: client_ip_str,
-        ether: params.ether.map(|v| v.into_iter().collect()),
-        inet: params.inet.map(|v| v.into_iter().collect()),
-        inet6: params.inet6.map(|v| v.into_iter().collect()),
-    };
-
-    debug!("Received record: {:?}", current_record);
-
-    let mut records_guard = state.records.write().await;
-    let mut datetimes_guard = state.datetimes.write().await;
-    let mut timestamps_guard = state.timestamps.write().await;
-    let mut changed_hosts_guard = state.changed_hosts.write().await;
-
-    let previous_record = records_guard.get(&host_name);
-
-    if previous_record.map_or(true, |pr| pr != &current_record) {
-        debug!("Record change for {}: {:?}", host_name, current_record);
-        records_guard.insert(host_name.clone(), current_record); // This clones current_record
-        changed_hosts_guard.insert(host_name.clone());
-    }
-
-    let now = Utc::now();
-    datetimes_guard.insert(host_name.clone(), now);
-    timestamps_guard.insert(host_name.clone(), now.timestamp());
-
-    "OK".into_response()
-}
-
-#[derive(Serialize)]
-struct DumpEntry {
-    #[serde(flatten)]
-    record: Record, // Will be cloned
-    datetime: String,
-    t: i64,
-}
-
-// Corresponds to Python's dump2 (JSON array)
-async fn dump_handler(State(state): State<AppState>) -> Json<Vec<DumpEntry>> {
-    let records_guard = state.records.read().await;
-    let datetimes_guard = state.datetimes.read().await;
-    let timestamps_guard = state.timestamps.read().await;
-
-    let mut result_list = Vec::new();
-
-    for (host, rec_ref) in records_guard.iter() {
-        // Clone the record for modification and inclusion in DumpEntry
-        let rec_clone = rec_ref.clone();
-
-        // Convert HashSets to Vecs for JSON, as Python code does list(v)
-        // Serde can serialize HashSet to array, but to match Python's explicit list:
-        // The previous `if let Some(ether_set) = &rec_clone.ether { ... }` block was empty
-        // and `ether_set` was unused. Serde handles HashSet serialization to JSON array.
-
-        result_list.push(DumpEntry {
-            record: rec_clone, // Use the cloned record
-            datetime: datetimes_guard
-                .get(host)
-                .map_or_else(String::new, dt_format),
-            t: timestamps_guard.get(host).copied().unwrap_or(0),
-        });
-    }
-    Json(result_list)
-}
-
-#[derive(Deserialize, Debug)]
-struct AddHostParams {
-    host: String,
-}
-
-async fn addhost_handler(
-    State(state): State<AppState>,
-    Query(params): Query<AddHostParams>,
-) -> Html<String> {
-    let host_to_add = params.host.to_lowercase();
-    info!("Forced addition of {}", host_to_add);
-    state
-        .do_pair_hosts
-        .write()
-        .await
-        .insert(host_to_add.clone());
-    Html(format!("will add {}", host_to_add))
-}
-
-async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
-    let records_guard = state.records.read().await;
-    let datetimes_guard = state.datetimes.read().await;
-    let unpaired_guard = state.unpaired_hosts.read().await;
-
-    let mut ret = String::from("<html><body><table>");
-    ret.push_str(
-        "<tr><th>hostname</th><th>datetime</th><th>version</th>
-        <th>ether</th><th>inet</th><th>inet6</th>
-        <th>remote_addr</th><th>ops</th></tr>",
-    );
-
-    let mut sorted_hosts: Vec<String> = records_guard.keys().cloned().collect();
-    sorted_hosts.sort(); // Python sorts keys
-
-    for host_name in sorted_hosts {
-        if let Some(rec) = records_guard.get(&host_name) {
-            ret.push_str("<tr>");
-            ret.push_str(&format!("<td>{}</td>", rec.hostname));
-            ret.push_str(&format!(
-                "<td>{}</td>",
-                datetimes_guard
-                    .get(&host_name)
-                    .map_or_else(String::new, dt_format)
-            ));
-            ret.push_str(&format!(
-                "<td>{}</td>",
-                rec.version.as_deref().unwrap_or("")
-            ));
-
-            for af_val_opt in [&rec.ether, &rec.inet, &rec.inet6] {
-                ret.push_str("<td>");
-                if let Some(vals_set) = af_val_opt {
-                    // Sort for consistent output, though Python's set join order is arbitrary
-                    let mut vals_vec: Vec<String> = vals_set.iter().cloned().collect();
-                    vals_vec.sort();
-                    ret.push_str(&vals_vec.join("<br/>"));
-                }
-                ret.push_str("</td>");
-            }
-            ret.push_str(&format!("<td>{}</td>", rec.remote_addr));
-
-            if unpaired_guard.contains(&host_name) {
-                ret.push_str(&format!(
-                    "<td><a href=\"/addhost?host={}\">add</a></td>",
-                    host_name // Already percent-encoded by format! if needed, but hostnames are usually safe
-                ));
-            } else {
-                ret.push_str("<td></td>");
-            }
-            ret.push_str("</tr>");
-        }
-    }
-
-    ret.push_str("</table></body></html>");
-    Html(ret)
-}
 
 // --- Main Function ---
 #[tokio::main]
@@ -858,12 +659,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         dns_update_background_loop(state_clone_for_loop).await;
     });
 
-    let app = Router::new()
-        .route("/", get(root_handler))
-        .route("/dump", get(dump_handler)) // Corresponds to Python's dump2
-        .route("/addhost", get(addhost_handler))
-        .route("/listhosts", get(listhosts_handler))
-        .with_state(shared_state);
+    let app = web::create_router(shared_state.clone());
 
     let listener_addr = SocketAddr::from(([0, 0, 0, 0], args.port));
     info!("Listening on http://{}", listener_addr);
