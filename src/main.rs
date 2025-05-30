@@ -100,8 +100,7 @@ async fn call_cmd(
     if status.success() {
         Ok(())
     } else {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
+        Err(std::io::Error::other(
             format!(
                 "Command `{} {}` failed with status: {}",
                 cmd_str,
@@ -120,8 +119,7 @@ async fn call_cmd_output(cmd_str: &str, args: &[&str]) -> Result<String, std::io
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Other,
+        Err(std::io::Error::other(
             format!(
                 "Command `{} {}` failed with status: {}. Stderr: {}",
                 cmd_str,

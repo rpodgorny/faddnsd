@@ -83,7 +83,7 @@ pub async fn root_handler(
 
     let previous_record = records_guard.get(&host_name);
 
-    if previous_record.map_or(true, |pr| pr != &current_record) {
+    if previous_record != Some(&current_record) {
         debug!("Record change for {}: {:?}", host_name, current_record);
         records_guard.insert(host_name.clone(), current_record);
         changed_hosts_guard.insert(host_name.clone());
