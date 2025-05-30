@@ -1,11 +1,10 @@
 use axum::{
     extract::{ConnectInfo, Query, State},
+    http::HeaderMap,
     response::{Html, IntoResponse, Json},
     routing::get,
     Router,
 };
-use axum_extra::headers::XForwardedFor;
-use axum_extra::TypedHeader;
 use chrono::{DateTime, Utc};
 use clap::Parser;
 use regex::Regex;
@@ -508,7 +507,7 @@ async fn root_handler(
     State(state): State<AppState>,
     Query(params): Query<UpdateRequestParams>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
-    maybe_x_forwarded_for: Option<TypedHeader<XForwardedFor>>,
+    headers: HeaderMap,
 ) -> impl IntoResponse {
     let host_name = match params.host {
         Some(h) => h.to_lowercase(),
@@ -523,8 +522,13 @@ async fn root_handler(
         }
     };
 
-    let client_ip_str = if let Some(TypedHeader(x_forwarded_for)) = maybe_x_forwarded_for {
-        x_forwarded_for.first().map(|ip| ip.to_string()).unwrap_or_else(|| addr.ip().to_string())
+    let client_ip_str = if let Some(x_forwarded_for) = headers.get("x-forwarded-for") {
+        if let Ok(xff_str) = x_forwarded_for.to_str() {
+            // X-Forwarded-For can contain multiple IPs separated by commas, take the first one
+            xff_str.split(',').next().unwrap_or("").trim().to_string()
+        } else {
+            addr.ip().to_string()
+        }
     } else {
         addr.ip().to_string()
     };
