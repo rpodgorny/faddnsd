@@ -16,7 +16,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 regex = "1"
 thiserror = "1"
 ipnetwork = "0.20" # For more robust IP checks, though std::net::IpAddr is good
-axum-extra = { version = "0.9", features = ["typed-header", "typed-header-x-forwarded-for"] }
+axum-extra = { version = "=0.9.3", features = ["typed-header", "typed-header-x-forwarded-for"] }
 
 [build-dependencies]
 # No specific build-time dependencies needed for just reading a file,

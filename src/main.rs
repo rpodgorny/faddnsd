@@ -1,6 +1,6 @@
 use axum::{
-    extract::{Query, State, ConnectInfo},
-    response::{Html, IntoResponse, Json, Response},
+    extract::{ConnectInfo, Query, State},
+    response::{Html, IntoResponse, Json},
     routing::get,
     Router,
 };
@@ -8,7 +8,6 @@ use axum_extra::headers::XForwardedFor;
 use axum_extra::TypedHeader;
 use chrono::{DateTime, Utc};
 use clap::Parser;
-use ipnetwork::IpNetwork; // For checking private/link-local more easily
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -25,9 +24,8 @@ use tokio::{
     fs as afs, // async file system operations
     process::Command as TokioCommand, // async command execution
     sync::RwLock,
-    time::sleep,
 };
-use tracing::{debug, error, info, warn, Level};
+use tracing::{debug, error, info, warn};
 use tracing_subscriber::{fmt, EnvFilter}; // Use EnvFilter for more flexible log level setting
 
 // --- Configuration and State ---
@@ -580,18 +578,12 @@ async fn dump_handler(State(state): State<AppState>) -> Json<Vec<DumpEntry>> {
 
     for (host, rec_ref) in records_guard.iter() {
         // Clone the record for modification and inclusion in DumpEntry
-        let mut rec_clone = rec_ref.clone(); 
+        let rec_clone = rec_ref.clone(); 
         
         // Convert HashSets to Vecs for JSON, as Python code does list(v)
         // Serde can serialize HashSet to array, but to match Python's explicit list:
-        if let Some(ether_set) = &rec_clone.ether {
-            // This part is tricky if we want to modify the record for dump output only
-            // The Python code modifies the dict `r` in place before appending.
-            // For Rust, it's cleaner to create a DumpEntry with Vecs directly if needed.
-            // However, Record already uses HashSet. If client expects arrays, this is fine.
-            // The python code does `r[k] = list(v)`.
-            // Let's assume Record's HashSet<String> serializing to JSON array is acceptable.
-        }
+        // The previous `if let Some(ether_set) = &rec_clone.ether { ... }` block was empty
+        // and `ether_set` was unused. Serde handles HashSet serialization to JSON array.
 
         result_list.push(DumpEntry {
             record: rec_clone, // Use the cloned record
