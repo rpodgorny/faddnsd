@@ -1,7 +1,10 @@
 [package]
-name = "faddns_rust"
-version = "0.1.0" # This will be mostly for local use, actual version comes from build.rs
+name = "faddnsd"
+version = "0.1.0"
 edition = "2021"
+rust-version = "1.75"
+license = "TODO"
+authors = ["Radek Podgorny <radek@podgorny.cz>"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -18,13 +21,10 @@ thiserror = "1"
 ipnetwork = "0.20" # For more robust IP checks, though std::net::IpAddr is good
 axum-extra = "=0.9.3"
 
-[build-dependencies]
-# No specific build-time dependencies needed for just reading a file,
-# but if we were using a code generator or similar, they'd go here.
-# For this task, std library in build.rs is sufficient.
+[profile.release.package."*"]
+debug = false
 
 [profile.release]
-strip = true
-lto = true
+debug = "line-tables-only"
 codegen-units = 1
-panic = "abort"
+lto = true

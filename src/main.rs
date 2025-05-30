@@ -26,7 +26,7 @@ use tracing_subscriber::{fmt, EnvFilter}; // Use EnvFilter for more flexible log
 #[derive(Parser, Debug)]
 #[clap(
     name = "faddnsd-rust",
-    version = env!("FADDNS_VERSION"), // Fetched by build.rs
+    version = env!("CARGO_PKG_VERSION"),
     about = "Freakin' Awesome Dynamic DNS Server (Rust version)"
 )]
 struct Args {
@@ -607,7 +607,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Axum access logging is typically handled by Tower layers like TraceLayer if detailed logs are needed.
     // The default tracing setup will log basic request info if spans are used.
 
-    info!("Starting faddnsd-rust version {}", env!("FADDNS_VERSION"));
+    info!("Starting faddnsd-rust version {}", env!("CARGO_PKG_VERSION"));
     debug!("Arguments: {:?}", args);
 
     let final_serial_fn = match args.serial_fn.clone() {
