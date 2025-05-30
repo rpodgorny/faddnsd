@@ -10,17 +10,22 @@ use std::net::SocketAddr;
 use tracing::{debug, info};
 
 use crate::{dt_format, AppState, Record};
+use std::collections::HashSet;
 
 #[derive(Deserialize, Debug)]
 pub struct UpdateRequestParams {
     pub version: Option<String>,
     pub host: Option<String>,
-    #[serde(alias = "ether[]", default)]
-    pub ether: Option<Vec<String>>,
-    #[serde(alias = "inet[]", default)]
-    pub inet: Option<Vec<String>>,
-    #[serde(alias = "inet6[]", default)]
-    pub inet6: Option<Vec<String>>,
+    // Handle both single values and arrays
+    pub ether: Option<String>,
+    #[serde(alias = "ether[]")]
+    pub ether_array: Option<Vec<String>>,
+    pub inet: Option<String>, 
+    #[serde(alias = "inet[]")]
+    pub inet_array: Option<Vec<String>>,
+    pub inet6: Option<String>,
+    #[serde(alias = "inet6[]")] 
+    pub inet6_array: Option<Vec<String>>,
 }
 
 #[derive(Serialize)]
@@ -34,6 +39,18 @@ pub struct DumpEntry {
 #[derive(Deserialize, Debug)]
 pub struct AddHostParams {
     pub host: String,
+}
+
+fn merge_single_and_array(single: Option<String>, array: Option<Vec<String>>) -> Option<HashSet<String>> {
+    match (single, array) {
+        (Some(s), None) => Some([s].into_iter().collect()),
+        (None, Some(arr)) => Some(arr.into_iter().collect()),
+        (Some(s), Some(mut arr)) => {
+            arr.push(s);
+            Some(arr.into_iter().collect())
+        },
+        (None, None) => None,
+    }
 }
 
 pub async fn root_handler(
@@ -69,9 +86,9 @@ pub async fn root_handler(
         hostname: host_name.clone(),
         version: params.version,
         remote_addr: client_ip_str,
-        ether: params.ether.map(|v| v.into_iter().collect()),
-        inet: params.inet.map(|v| v.into_iter().collect()),
-        inet6: params.inet6.map(|v| v.into_iter().collect()),
+        ether: merge_single_and_array(params.ether, params.ether_array),
+        inet: merge_single_and_array(params.inet, params.inet_array),
+        inet6: merge_single_and_array(params.inet6, params.inet6_array),
     };
 
     debug!("Received record: {:?}", current_record);
