@@ -1,0 +1,70 @@
+$TTL 1H
+@ IN SOA ns1.podgorny.cz. hostmaster (
+	2011923486 ; Serial
+	1H	; Refresh 3H
+	15M	; Retry 15M
+	1W	; Expire
+	1H )	; Minimum 1D
+
+	NS	ns1
+	NS	ns2
+
+	MX	10	c10aa9c75fd1523c.mx1.emailprofi.seznam.cz.
+	MX	20	c10aa9c75fd1523c.mx2.emailprofi.seznam.cz.
+
+	A	46.36.37.83 ; plukovnik
+	AAAA	2a02:25b0:aaaa:5555::1111 ; plukovnik
+
+	;;;TXT	"v=spf1 mx ~all"
+	TXT	"v=spf1 include:spf.seznam.cz ?all"
+
+; glue
+ns1	A	46.36.39.65 ; admiral
+ns1	AAAA	2a02:25b0:aaaa:5555::2222 ; admiral
+;ns2	A	46.36.38.86 ; rpodgorny
+;ns2	AAAA	2a02:25b0:aaaa:5555::3333 ; rpodgorny
+ns2	A	46.36.40.55 ; smoula
+ns2	AAAA	2a02:25b0:aaaa:5555::1122 ; smoula
+
+; mx - for some reason, rfc forbids this to be a cname
+;mx1	A	46.36.37.83 ; plukovnik
+;mx1	AAAA	2a02:25b0:aaaa:5555::1111 ; plukovnik
+;mx3	A	109.74.194.86 ; krutor
+;mx3	AAAA	2a01:7e00::f03c:91ff:fe84:ad7f ; krutor
+
+admiral	A	46.36.39.65
+admiral4	A	46.36.39.65
+admiral	AAAA	2a02:25b0:aaaa:5555::2222
+admiral6	AAAA	2a02:25b0:aaaa:5555::2222
+archlinux	CNAME	muflon.asterix.cz.
+atx	CNAME	admiral
+atxmon	CNAME	plukovnik
+backup	CNAME	orion.asterix.cz.
+blog	CNAME	plukovnik
+bocca	CNAME	admiral
+expenses	CNAME	kapitan
+faddns	CNAME	admiral
+homeassistant	AAAA	2a01:9422:904:1ee:9fbd:4830:232c:236c
+krutor	A	109.74.194.86
+krutor	AAAA	2a01:7e00::f03c:91ff:fe84:ad7f
+pavel	CNAME	admiral
+piwik	CNAME	admiral
+plukovnik	A	46.36.37.83
+plukovnik	AAAA	2a02:25b0:aaaa:5555::1111
+rpodgorny	A	46.36.38.86
+rpodgorny	AAAA	2a02:25b0:aaaa:5555::3333
+rumburak	AAAA	2002:2e24:2741:ff00::2
+rumcajs	A	87.236.199.73
+smoula	A	46.36.40.55
+smoula	AAAA	2a02:25b0:aaaa:5555::1122
+srilanka	CNAME	plukovnik
+storage	CNAME	milhouse
+tor-exit	CNAME	rumcajs
+vps	A	5.175.159.31
+wikileaks	CNAME	rumcajs
+www	CNAME	podgorny.cz.
+
+$include cz.podgorny_faddns.zone
+
+$include Kpodgorny.cz.+005+12735.key
+$include Kpodgorny.cz.+005+49477.key
