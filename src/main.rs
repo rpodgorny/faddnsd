@@ -445,10 +445,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = faddnsd::web::create_router(shared_state.clone());
 
-    let listener_addr = SocketAddr::from(([0, 0, 0, 0], args.port));
-    info!("Listening on http://{}", listener_addr);
+    // Try to bind to IPv6 first (which often accepts IPv4 connections too)
+    let listener = match tokio::net::TcpListener::bind(format!("[::]:{}", args.port)).await {
+        Ok(listener) => {
+            info!("Listening on http://[::]:{} (IPv4 and IPv6)", args.port);
+            listener
+        }
+        Err(_) => {
+            // Fall back to IPv4 only if IPv6 binding fails
+            let listener_addr = SocketAddr::from(([0, 0, 0, 0], args.port));
+            info!("IPv6 binding failed, listening on http://{} (IPv4 only)", listener_addr);
+            tokio::net::TcpListener::bind(listener_addr).await?
+        }
+    };
 
-    let listener = tokio::net::TcpListener::bind(listener_addr).await?;
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
