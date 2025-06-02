@@ -254,7 +254,10 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
     for host_name in sorted_hosts {
         if let Some(rec) = records_guard.get(&host_name) {
             ret.push_str("<tr class='hover:bg-gray-50'>");
-            ret.push_str(&format!("<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{}</td>", rec.hostname));
+            ret.push_str(&format!(
+                "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{}</td>",
+                rec.hostname
+            ));
             ret.push_str(&format!(
                 "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{}</td>",
                 datetimes_guard
@@ -275,12 +278,16 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
                 }
                 ret.push_str("</td>");
             }
-            ret.push_str(&format!("<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{}</td>", rec.remote_addr));
+            ret.push_str(&format!(
+                "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{}</td>",
+                rec.remote_addr
+            ));
 
             if unpaired_guard.contains(&host_name) {
                 ret.push_str(&format!(
-                    "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'><form hx-post=\"/addhost\" hx-target=\"this\" hx-swap=\"innerHTML\"><input type=\"hidden\" name=\"host\" value=\"{}\"><button type=\"submit\" class='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'>Add</button></form></td>",
-                    host_name
+                    "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                      <button hx-post='/addhost' hx-vals='{{\"host\":\"{host_name}\"}}' hx-target='this' hx-swap='innerHTML' class='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'>Add</button>
+                    </td>"
                 ));
             } else {
                 ret.push_str("<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'></td>");
