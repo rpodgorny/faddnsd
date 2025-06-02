@@ -1,18 +1,33 @@
+use axum::extract::{Form, RawQuery};
 use axum::{
     extract::{ConnectInfo, State},
     http::HeaderMap,
     response::{Html, IntoResponse, Json},
-    routing::get,
+    routing::{get, post},
     Router,
 };
-use axum::extract::RawQuery;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
+use tower_http::services::ServeDir;
 use tracing::{debug, info};
 
 use crate::{dt_format, AppState, Record};
-use std::collections::HashSet;
 use std::collections::HashMap;
+use std::collections::HashSet;
+
+const HEADER: &str = r#"
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset='utf-8'>
+			<meta name='viewport' content='width=device-width, initial-scale=1'>
+			<title>faddnsd</title>
+			<link rel='stylesheet' href='./static/vendor/fontawesome/css/all.css'>
+			<script src='./static/vendor/htmx.min.js'></script>
+		</head>
+		<body>
+"#;
+const FOOTER: &str = "</body></html>";
 
 #[derive(Debug)]
 pub struct UpdateRequestParams {
@@ -25,19 +40,22 @@ pub struct UpdateRequestParams {
 
 fn parse_query_params(query: &str) -> UpdateRequestParams {
     let mut params = HashMap::new();
-    
+
     for pair in query.split('&') {
         if let Some((key, value)) = pair.split_once('=') {
-            let decoded_value = urlencoding::decode(value).unwrap_or_else(|_| value.into()).into_owned();
-            params.entry(key.to_string())
+            let decoded_value = urlencoding::decode(value)
+                .unwrap_or_else(|_| value.into())
+                .into_owned();
+            params
+                .entry(key.to_string())
                 .or_insert_with(Vec::new)
                 .push(decoded_value);
         }
     }
-    
+
     let get_first = |key: &str| params.get(key).and_then(|v| v.first()).cloned();
     let get_all = |key: &str| params.get(key).cloned().unwrap_or_default();
-    
+
     UpdateRequestParams {
         version: get_first("version"),
         host: get_first("host"),
@@ -88,11 +106,13 @@ pub async fn root_handler(
         Some(h) => h.to_lowercase(),
         None => {
             debug!("No host specified, ignoring");
-            return Html(
-                "<html><body><p>no host specified</p>
+            return Html(format!(
+                "{HEADER}
+                <p>no host specified</p>
                 <p><a href=\"/listhosts\">listhosts</a></p>
-                <p><a href=\"/dump\">dump</a></p></body></html>",
-            )
+                <p><a href=\"/dump\">dump</a></p>
+                {FOOTER}"
+            ))
             .into_response();
         }
     };
@@ -155,14 +175,14 @@ pub async fn dump_handler(State(state): State<AppState>) -> impl IntoResponse {
                 .map_or_else(String::new, dt_format),
             t: timestamps_guard.get(host).copied().unwrap_or(0),
         };
-        
+
         if let Ok(json_line) = serde_json::to_string(&dump_entry) {
             result.push_str(&json_line);
             result.push('\n');
         }
     }
     result.push('\n');
-    
+
     result
 }
 
@@ -189,17 +209,9 @@ pub async fn dump2_handler(State(state): State<AppState>) -> Json<Vec<DumpEntry>
 
 pub async fn addhost_handler(
     State(state): State<AppState>,
-    RawQuery(query): RawQuery,
+    Form(params): Form<AddHostParams>,
 ) -> Html<String> {
-    let params = match query {
-        Some(q) => parse_query_params(&q),
-        None => return Html("No query parameters provided".to_string()),
-    };
-    
-    let host_to_add = match params.host {
-        Some(h) => h.to_lowercase(),
-        None => return Html("No host parameter provided".to_string()),
-    };
+    let host_to_add = params.host.to_lowercase();
     info!("Forced addition of {}", host_to_add);
     state
         .do_pair_hosts
@@ -214,9 +226,10 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
     let datetimes_guard = state.datetimes.read().await;
     let unpaired_guard = state.unpaired_hosts.read().await;
 
-    let mut ret = String::from("<html><body><table>");
+    let mut ret = String::from(HEADER);
     ret.push_str(
-        "<tr><th>hostname</th><th>datetime</th><th>version</th>
+        "<table>
+        <tr><th>hostname</th><th>datetime</th><th>version</th>
         <th>ether</th><th>inet</th><th>inet6</th>
         <th>remote_addr</th><th>ops</th></tr>",
     );
@@ -252,7 +265,7 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
 
             if unpaired_guard.contains(&host_name) {
                 ret.push_str(&format!(
-                    "<td><a href=\"/addhost?host={}\">add</a></td>",
+                    "<td><form hx-post=\"/addhost\" hx-target=\"this\" hx-swap=\"innerHTML\"><input type=\"hidden\" name=\"host\" value=\"{}\"><button type=\"submit\">add</button></form></td>",
                     host_name
                 ));
             } else {
@@ -262,7 +275,8 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
         }
     }
 
-    ret.push_str("</table></body></html>");
+    ret.push_str("</table>");
+    ret.push_str(FOOTER);
     Html(ret)
 }
 
@@ -271,7 +285,8 @@ pub fn create_router(state: AppState) -> Router {
         .route("/", get(root_handler))
         .route("/dump", get(dump_handler))
         .route("/dump2", get(dump2_handler))
-        .route("/addhost", get(addhost_handler))
+        .route("/addhost", post(addhost_handler))
         .route("/listhosts", get(listhosts_handler))
         .with_state(state)
+        .nest_service("/static", ServeDir::new("static"))
 }
