@@ -1,31 +1,50 @@
 use axum::{
-    extract::{ConnectInfo, Query, State},
+    extract::{ConnectInfo, State},
     http::HeaderMap,
     response::{Html, IntoResponse, Json},
     routing::get,
     Router,
 };
+use axum::extract::RawQuery;
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use tracing::{debug, info};
 
 use crate::{dt_format, AppState, Record};
 use std::collections::HashSet;
+use std::collections::HashMap;
 
-#[derive(Deserialize, Debug)]
+#[derive(Debug)]
 pub struct UpdateRequestParams {
     pub version: Option<String>,
     pub host: Option<String>,
-    // Handle both single values and arrays
-    pub ether: Option<String>,
-    #[serde(alias = "ether[]")]
-    pub ether_array: Option<Vec<String>>,
-    pub inet: Option<String>, 
-    #[serde(alias = "inet[]")]
-    pub inet_array: Option<Vec<String>>,
-    pub inet6: Option<String>,
-    #[serde(alias = "inet6[]")] 
-    pub inet6_array: Option<Vec<String>>,
+    pub ether: Vec<String>,
+    pub inet: Vec<String>,
+    pub inet6: Vec<String>,
+}
+
+fn parse_query_params(query: &str) -> UpdateRequestParams {
+    let mut params = HashMap::new();
+    
+    for pair in query.split('&') {
+        if let Some((key, value)) = pair.split_once('=') {
+            let decoded_value = urlencoding::decode(value).unwrap_or_else(|_| value.into()).into_owned();
+            params.entry(key.to_string())
+                .or_insert_with(Vec::new)
+                .push(decoded_value);
+        }
+    }
+    
+    let get_first = |key: &str| params.get(key).and_then(|v| v.first()).cloned();
+    let get_all = |key: &str| params.get(key).cloned().unwrap_or_default();
+    
+    UpdateRequestParams {
+        version: get_first("version"),
+        host: get_first("host"),
+        ether: get_all("ether"),
+        inet: get_all("inet"),
+        inet6: get_all("inet6"),
+    }
 }
 
 #[derive(Serialize)]
@@ -41,24 +60,30 @@ pub struct AddHostParams {
     pub host: String,
 }
 
-fn merge_single_and_array(single: Option<String>, array: Option<Vec<String>>) -> Option<HashSet<String>> {
-    match (single, array) {
-        (Some(s), None) => Some([s].into_iter().collect()),
-        (None, Some(arr)) => Some(arr.into_iter().collect()),
-        (Some(s), Some(mut arr)) => {
-            arr.push(s);
-            Some(arr.into_iter().collect())
-        },
-        (None, None) => None,
+fn vec_to_hashset_opt(vec: Vec<String>) -> Option<HashSet<String>> {
+    if vec.is_empty() {
+        None
+    } else {
+        Some(vec.into_iter().collect())
     }
 }
 
 pub async fn root_handler(
     State(state): State<AppState>,
-    Query(params): Query<UpdateRequestParams>,
+    RawQuery(query): RawQuery,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
+    let params = match query {
+        Some(q) => parse_query_params(&q),
+        None => UpdateRequestParams {
+            version: None,
+            host: None,
+            ether: Vec::new(),
+            inet: Vec::new(),
+            inet6: Vec::new(),
+        },
+    };
     let host_name = match params.host {
         Some(h) => h.to_lowercase(),
         None => {
@@ -86,9 +111,9 @@ pub async fn root_handler(
         hostname: host_name.clone(),
         version: params.version,
         remote_addr: client_ip_str,
-        ether: merge_single_and_array(params.ether, params.ether_array),
-        inet: merge_single_and_array(params.inet, params.inet_array),
-        inet6: merge_single_and_array(params.inet6, params.inet6_array),
+        ether: vec_to_hashset_opt(params.ether),
+        inet: vec_to_hashset_opt(params.inet),
+        inet6: vec_to_hashset_opt(params.inet6),
     };
 
     debug!("Received record: {:?}", current_record);
@@ -164,9 +189,17 @@ pub async fn dump2_handler(State(state): State<AppState>) -> Json<Vec<DumpEntry>
 
 pub async fn addhost_handler(
     State(state): State<AppState>,
-    Query(params): Query<AddHostParams>,
+    RawQuery(query): RawQuery,
 ) -> Html<String> {
-    let host_to_add = params.host.to_lowercase();
+    let params = match query {
+        Some(q) => parse_query_params(&q),
+        None => return Html("No query parameters provided".to_string()),
+    };
+    
+    let host_to_add = match params.host {
+        Some(h) => h.to_lowercase(),
+        None => return Html("No host parameter provided".to_string()),
+    };
     info!("Forced addition of {}", host_to_add);
     state
         .do_pair_hosts

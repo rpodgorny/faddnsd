@@ -32,7 +32,7 @@ struct Args {
     zone_fn: PathBuf,
     #[clap(value_parser)]
     serial_fn: Option<PathBuf>,
-    #[clap(long, short, value_parser, default_value_t = 80)]
+    #[clap(long, short, value_parser, default_value_t = 8765)]
     port: u16,
     #[clap(long)]
     no_zone_reload: bool,

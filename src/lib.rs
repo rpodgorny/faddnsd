@@ -11,10 +11,7 @@ use std::{
     process::Stdio,
     sync::Arc,
 };
-use tokio::{
-    process::Command as TokioCommand,
-    sync::RwLock,
-};
+use tokio::{process::Command as TokioCommand, sync::RwLock};
 use tracing::{debug, error, info};
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -71,14 +68,12 @@ async fn call_cmd(
     if status.success() {
         Ok(())
     } else {
-        Err(std::io::Error::other(
-            format!(
-                "Command `{} {}` failed with status: {}",
-                cmd_str,
-                args.join(" "),
-                status
-            ),
-        ))
+        Err(std::io::Error::other(format!(
+            "Command `{} {}` failed with status: {}",
+            cmd_str,
+            args.join(" "),
+            status
+        )))
     }
 }
 
@@ -90,15 +85,13 @@ async fn call_cmd_output(cmd_str: &str, args: &[&str]) -> Result<String, std::io
         Ok(String::from_utf8_lossy(&output.stdout).into_owned())
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        Err(std::io::Error::other(
-            format!(
-                "Command `{} {}` failed with status: {}. Stderr: {}",
-                cmd_str,
-                args.join(" "),
-                output.status,
-                stderr
-            ),
-        ))
+        Err(std::io::Error::other(format!(
+            "Command `{} {}` failed with status: {}. Stderr: {}",
+            cmd_str,
+            args.join(" "),
+            output.status,
+            stderr
+        )))
     }
 }
 
@@ -133,7 +126,7 @@ pub fn is_ip_restricted(ip_str: &str) -> bool {
 }
 
 async fn check_zone_file(zone: &str, zone_fn: &Path) -> Result<bool, std::io::Error> {
-    debug!("check_zone: {} {}", zone, zone_fn.display());
+    debug!("check_zone: {zone} {}", zone_fn.display());
     let zone_fn_str = zone_fn.to_str().ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::InvalidInput,
@@ -191,10 +184,8 @@ async fn update_serial_in_file(serial_fn: &Path, out_fn: &Path) -> Result<(), st
                     line = line.replace(serial_str, &new_serial_val.to_string());
                     serial_done = true;
                     info!(
-                        "{} serial: {} -> {}",
+                        "{} serial: {serial_val} -> {new_serial_val}",
                         serial_fn.display(),
-                        serial_val,
-                        new_serial_val
                     );
                 }
             }
@@ -212,7 +203,7 @@ async fn update_serial_in_file(serial_fn: &Path, out_fn: &Path) -> Result<(), st
 
     let mut outfile = StdFile::create(out_fn)?; // Overwrite out_fn
     for line in temp_lines {
-        writeln!(outfile, "{}", line)?;
+        writeln!(outfile, "{line}")?;
     }
     Ok(())
 }
@@ -224,30 +215,26 @@ pub fn generate_bind_lines_for_record(record: &Record, dt: &DateTime<Utc>) -> St
 
     if let Some(inet_addrs) = &record.inet {
         for addr in inet_addrs {
-            if !is_ip_restricted(addr) {
-                ret.push_str(&format!(
-                    "{}\t{}\tA\t{} ; @faddns {}\n",
-                    hostname,
-                    ttl,
-                    addr,
-                    dt_format(dt)
-                ));
-                debug!("{} IN A {}", hostname, addr);
+            if is_ip_restricted(addr) {
+                continue;
             }
+            ret.push_str(&format!(
+                "{hostname}\t{ttl}\tA\t{addr} ; @faddns {}\n",
+                dt_format(dt)
+            ));
+            debug!("{hostname} IN A {addr}");
         }
     }
     if let Some(inet6_addrs) = &record.inet6 {
         for addr in inet6_addrs {
-            if !is_ip_restricted(addr) {
-                ret.push_str(&format!(
-                    "{}\t{}\tAAAA\t{} ; @faddns {}\n",
-                    hostname,
-                    ttl,
-                    addr,
-                    dt_format(dt)
-                ));
-                debug!("{} IN AAAA {}", hostname, addr);
+            if is_ip_restricted(addr) {
+                continue;
             }
+            ret.push_str(&format!(
+                "{hostname}\t{ttl}\tAAAA\t{addr} ; @faddns {}\n",
+                dt_format(dt)
+            ));
+            debug!("{hostname} IN AAAA {addr}");
         }
     }
     ret
@@ -319,10 +306,7 @@ pub async fn update_zone_file_content(
                 if !bind_lines.is_empty() {
                     temp_lines.push(bind_lines.trim_end().to_string());
                 } else {
-                    debug!(
-                        "change for {} contains no usable data, keeping old record",
-                        host_in_zone
-                    );
+                    debug!("change for {host_in_zone} contains no usable data, keeping old record");
                     temp_lines.push(line); // Keep original line
                 }
                 written_hosts_this_pass.insert(host_in_zone.clone());
@@ -343,17 +327,14 @@ pub async fn update_zone_file_content(
         }
         if let Some(rec) = records_map.get(&host_to_add) {
             if let Some(dt) = datetimes_map.get(&host_to_add) {
-                info!("adding new host {} to zone file", host_to_add);
+                info!("adding new host {host_to_add} to zone file");
                 let bind_lines = generate_bind_lines_for_record(rec, dt);
                 if !bind_lines.is_empty() {
                     temp_lines.push(bind_lines.trim_end().to_string());
                     written_hosts_this_pass.insert(host_to_add.clone());
                     changed_hosts_snapshot.remove(&host_to_add); // Processed
                 } else {
-                    debug!(
-                        "new host {} change contains no usable data, not adding",
-                        host_to_add
-                    );
+                    debug!("new host {host_to_add} change contains no usable data, not adding");
                     // Python code would write the previous line if it existed, but for new hosts, it just skips.
                     // This means if a new host has no public IPs, it's not added, and remains in 'changed'.
                 }
@@ -363,7 +344,7 @@ pub async fn update_zone_file_content(
 
     let mut outfile = StdFile::create(out_fn)?; // Overwrite out_fn
     for line in temp_lines {
-        writeln!(outfile, "{}", line)?;
+        writeln!(outfile, "{line}")?;
     }
 
     // Python: return changed - written. `changed` here is `changed_hosts_snapshot` after removals.
@@ -371,3 +352,4 @@ pub async fn update_zone_file_content(
     // The hosts remaining in `changed_hosts_snapshot` are the new unpaired hosts.
     Ok(changed_hosts_snapshot)
 }
+

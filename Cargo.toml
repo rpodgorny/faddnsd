@@ -20,6 +20,7 @@ regex = "1"
 thiserror = "1"
 ipnetwork = "0.20" # For more robust IP checks, though std::net::IpAddr is good
 axum-extra = "=0.9.3"
+urlencoding = "2.1"
 
 [profile.release.package."*"]
 debug = false
