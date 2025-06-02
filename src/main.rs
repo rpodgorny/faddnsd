@@ -37,6 +37,8 @@ struct Args {
     #[clap(long)]
     no_zone_reload: bool,
     #[clap(long)]
+    no_zone_sign: bool,
+    #[clap(long)]
     debug: bool,
 }
 
@@ -308,18 +310,22 @@ async fn perform_dns_update_cycle(state: AppState) -> Result<(), String> {
     );
 
     // Sign zone: call('cd %s; dnssec-signzone -o %s %s' % (os.path.dirname(serial_fn), zone, serial_fn))
-    let zone_dir = config
-        .serial_fn
-        .parent()
-        .ok_or("Cannot get parent directory of serial_fn")?;
-    call_cmd(
-        "dnssec-signzone",
-        &["-o", &config.zone, serial_fn_str],
-        Some(zone_dir),
-    )
-    .await
-    .map_err(|e| format!("dnssec-signzone failed for zone {}: {}", config.zone, e))?;
-    info!("dnssec-signzone successful for {}", config.zone);
+    if !config.no_zone_sign {
+        let zone_dir = config
+            .serial_fn
+            .parent()
+            .ok_or("Cannot get parent directory of serial_fn")?;
+        call_cmd(
+            "dnssec-signzone",
+            &["-o", &config.zone, serial_fn_str],
+            Some(zone_dir),
+        )
+        .await
+        .map_err(|e| format!("dnssec-signzone failed for zone {}: {}", config.zone, e))?;
+        info!("dnssec-signzone successful for {}", config.zone);
+    } else {
+        info!("Zone signing skipped due to --no-zone-sign flag");
+    }
 
     // Python: for host in changed.copy(): logging.warning('%s not processed!' % host)
     // 'changed' at this point in Python is the set of unpaired hosts.
@@ -419,6 +425,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         serial_fn: final_serial_fn,
         out_fn: out_fn_path,
         no_zone_reload: args.no_zone_reload,
+        no_zone_sign: args.no_zone_sign,
     });
 
     let shared_state = AppState {

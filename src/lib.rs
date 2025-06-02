@@ -41,6 +41,7 @@ pub struct AppConfig {
     pub serial_fn: PathBuf,
     pub out_fn: PathBuf, // Temporary file for zone updates
     pub no_zone_reload: bool,
+    pub no_zone_sign: bool,
 }
 
 pub fn dt_format(dt: &DateTime<Utc>) -> String {
