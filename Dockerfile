@@ -1,4 +1,4 @@
-FROM docker.io/library/rust:1.75-slim as builder
+FROM docker.io/library/rust:1.87-slim as builder
 WORKDIR /usr/src/app
 COPY Cargo.toml Cargo.lock ./
 COPY src/ ./src/

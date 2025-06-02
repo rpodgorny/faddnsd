@@ -2,7 +2,7 @@
 name = "faddnsd"
 version = "0.1.0"
 edition = "2021"
-rust-version = "1.75"
+rust-version = "1.74"
 license = "TODO"
 authors = ["Radek Podgorny <radek@podgorny.cz>"]
 
