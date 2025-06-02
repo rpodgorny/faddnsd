@@ -17,11 +17,11 @@ chrono = { version = "0.4", features = ["serde"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
 regex = "1"
-thiserror = "1"
-ipnetwork = "0.20" # For more robust IP checks, though std::net::IpAddr is good
-axum-extra = "=0.9.3"
+thiserror = "2"
+ipnetwork = "0.21" # For more robust IP checks, though std::net::IpAddr is good
+axum-extra = "0.9"
 urlencoding = "2.1"
-tower-http = { version = "0.6.4", features = ["fs"] }
+tower-http = { version = "0.6.5", features = ["fs"] }
 
 [profile.release.package."*"]
 debug = false
