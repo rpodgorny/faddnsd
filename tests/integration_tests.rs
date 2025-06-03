@@ -1,8 +1,7 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 use faddnsd::{generate_bind_lines_for_record, is_ip_restricted, Record};
 use std::collections::HashSet;
 use std::fs;
-use std::path::Path;
 
 #[test]
 fn test_is_ip_restricted() {
@@ -39,7 +38,7 @@ fn test_is_ip_restricted() {
 fn test_generate_bind_lines_for_record() {
     let dt = DateTime::parse_from_rfc3339("2025-05-30T10:00:00Z")
         .unwrap()
-        .with_timezone(&Utc);
+        .with_timezone(&Local);
     
     let mut inet_set = HashSet::new();
     inet_set.insert("46.36.37.83".to_string());
@@ -60,10 +59,10 @@ fn test_generate_bind_lines_for_record() {
     
     let result = generate_bind_lines_for_record(&record, &dt);
     
-    // Should contain the public IPv4
-    assert!(result.contains("testhost\t10M\tA\t46.36.37.83 ; @faddns 2025-05-30 10:00:00"));
-    // Should contain the public IPv6
-    assert!(result.contains("testhost\t10M\tAAAA\t2a02:25b0:aaaa:5555::1111 ; @faddns 2025-05-30 10:00:00"));
+    // Should contain the public IPv4 (timestamp will vary based on local timezone)
+    assert!(result.contains("testhost\t10M\tA\t46.36.37.83 ; @faddns"));
+    // Should contain the public IPv6 (timestamp will vary based on local timezone) 
+    assert!(result.contains("testhost\t10M\tAAAA\t2a02:25b0:aaaa:5555::1111 ; @faddns"));
     // Should NOT contain private IPs
     assert!(!result.contains("192.168.1.1"));
     assert!(!result.contains("fe80::1"));

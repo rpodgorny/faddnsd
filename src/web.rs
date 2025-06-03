@@ -152,7 +152,7 @@ pub async fn root_handler(
         changed_hosts_guard.insert(host_name.clone());
     }
 
-    let now = chrono::Utc::now();
+    let now = chrono::Local::now();
     datetimes_guard.insert(host_name.clone(), now);
     timestamps_guard.insert(host_name.clone(), now.timestamp());
 

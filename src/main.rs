@@ -386,7 +386,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         EnvFilter::new("info") // Show info for all
     };
-    fmt().with_env_filter(log_level_filter).init();
+    fmt()
+        .with_env_filter(log_level_filter)
+        .with_timer(tracing_subscriber::fmt::time::LocalTime::rfc_3339())
+        .init();
 
     // Python: if not debug: cherrypy.log.access_log.propagate = False ...
     // Axum access logging is typically handled by Tower layers like TraceLayer if detailed logs are needed.

@@ -1,6 +1,6 @@
 pub mod web;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Local};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -28,7 +28,7 @@ pub struct Record {
 pub struct AppState {
     pub config: Arc<AppConfig>,
     pub records: Arc<RwLock<HashMap<String, Record>>>,
-    pub datetimes: Arc<RwLock<HashMap<String, DateTime<Utc>>>>,
+    pub datetimes: Arc<RwLock<HashMap<String, DateTime<Local>>>>,
     pub timestamps: Arc<RwLock<HashMap<String, i64>>>, // Unix timestamp
     pub changed_hosts: Arc<RwLock<HashSet<String>>>,
     pub unpaired_hosts: Arc<RwLock<HashSet<String>>>,
@@ -44,7 +44,7 @@ pub struct AppConfig {
     pub no_zone_sign: bool,
 }
 
-pub fn dt_format(dt: &DateTime<Utc>) -> String {
+pub fn dt_format(dt: &DateTime<Local>) -> String {
     dt.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
@@ -209,7 +209,7 @@ async fn update_serial_in_file(serial_fn: &Path, out_fn: &Path) -> Result<(), st
     Ok(())
 }
 
-pub fn generate_bind_lines_for_record(record: &Record, dt: &DateTime<Utc>) -> String {
+pub fn generate_bind_lines_for_record(record: &Record, dt: &DateTime<Local>) -> String {
     let mut ret = String::new();
     let hostname = record.hostname.to_lowercase();
     let ttl = "10M"; // Hardcoded in Python
@@ -245,7 +245,7 @@ pub async fn update_zone_file_content(
     zone_fn: &Path,
     out_fn: &Path,
     records_map: &HashMap<String, Record>,
-    datetimes_map: &HashMap<String, DateTime<Utc>>,
+    datetimes_map: &HashMap<String, DateTime<Local>>,
     mut changed_hosts_snapshot: HashSet<String>, // Consumes and modifies this set
     do_pair_set: &HashSet<String>,
 ) -> Result<HashSet<String>, std::io::Error> {
