@@ -229,20 +229,20 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
 
     let mut ret = String::from(HEADER);
     ret.push_str(
-        "<div class='container mx-auto px-4 py-8'>
+        "<div class='container mx-auto px-2 py-8'>
         <h1 class='text-3xl font-bold text-gray-800 mb-6'>Host List</h1>
         <div class='bg-white rounded-lg shadow-md overflow-hidden'>
         <table class='min-w-full divide-y divide-gray-200'>
         <thead class='bg-gray-50'>
         <tr>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Hostname</th>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>DateTime</th>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Version</th>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Ether</th>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>IPv4</th>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>IPv6</th>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Remote Addr</th>
-            <th class='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Hostname</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>DateTime</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Version</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Ether</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>IPv4</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>IPv6</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Remote Addr</th>
+            <th class='px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>Actions</th>
         </tr>
         </thead>
         <tbody class='bg-white divide-y divide-gray-200'>",
@@ -255,42 +255,42 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
         if let Some(rec) = records_guard.get(&host_name) {
             ret.push_str("<tr class='hover:bg-gray-50'>");
             ret.push_str(&format!(
-                "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900'>{}</td>",
+                "<td class='px-3 py-4 text-sm font-medium text-gray-900 break-words'>{}</td>",
                 rec.hostname
             ));
             ret.push_str(&format!(
-                "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{}</td>",
+                "<td class='px-3 py-4 text-sm text-gray-500 break-words'>{}</td>",
                 datetimes_guard
                     .get(&host_name)
                     .map_or_else(String::new, dt_format)
             ));
             ret.push_str(&format!(
-                "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{}</td>",
+                "<td class='px-3 py-4 text-sm text-gray-500 break-words'>{}</td>",
                 rec.version.as_deref().unwrap_or("")
             ));
 
             for af_val_opt in [&rec.ether, &rec.inet, &rec.inet6] {
-                ret.push_str("<td class='px-6 py-4 text-sm text-gray-500'>");
+                ret.push_str("<td class='px-3 py-4 text-sm text-gray-500'>");
                 if let Some(vals_set) = af_val_opt {
                     let mut vals_vec: Vec<String> = vals_set.iter().cloned().collect();
                     vals_vec.sort();
-                    ret.push_str(&format!("<div class='space-y-1'>{}</div>", vals_vec.iter().map(|v| format!("<div class='bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs'>{}</div>", v)).collect::<Vec<_>>().join("")));
+                    ret.push_str(&format!("<div class='space-y-1'>{}</div>", vals_vec.iter().map(|v| format!("<div class='bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)).collect::<Vec<_>>().join("")));
                 }
                 ret.push_str("</td>");
             }
             ret.push_str(&format!(
-                "<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-500'>{}</td>",
+                "<td class='px-3 py-4 text-sm text-gray-500 break-words'>{}</td>",
                 rec.remote_addr
             ));
 
             if unpaired_guard.contains(&host_name) {
                 ret.push_str(&format!(
-                    "<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'>
+                    "<td class='px-3 py-4 text-sm font-medium'>
                       <button hx-post='/addhost' hx-vals='{{\"host\":\"{host_name}\"}}' hx-target='this' hx-swap='innerHTML' class='bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs'>Add</button>
                     </td>"
                 ));
             } else {
-                ret.push_str("<td class='px-6 py-4 whitespace-nowrap text-sm font-medium'></td>");
+                ret.push_str("<td class='px-3 py-4 text-sm font-medium'></td>");
             }
             ret.push_str("</tr>");
         }
