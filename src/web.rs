@@ -11,7 +11,7 @@ use std::net::SocketAddr;
 use tower_http::services::ServeDir;
 use tracing::{debug, info};
 
-use crate::{dt_format, AppState, Record};
+use crate::{dt_format, is_ip_restricted, AppState, Record};
 use std::collections::HashMap;
 use std::collections::HashSet;
 
@@ -269,15 +269,49 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
                 rec.version.as_deref().unwrap_or("")
             ));
 
-            for af_val_opt in [&rec.ether, &rec.inet, &rec.inet6] {
-                ret.push_str("<td class='px-3 py-4 text-sm text-gray-500'>");
-                if let Some(vals_set) = af_val_opt {
-                    let mut vals_vec: Vec<String> = vals_set.iter().cloned().collect();
-                    vals_vec.sort();
-                    ret.push_str(&format!("<div class='space-y-1'>{}</div>", vals_vec.iter().map(|v| format!("<div class='bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)).collect::<Vec<_>>().join("")));
-                }
-                ret.push_str("</td>");
+            // Ethernet addresses
+            ret.push_str("<td class='px-3 py-4 text-sm text-gray-500'>");
+            if let Some(vals_set) = &rec.ether {
+                let mut vals_vec: Vec<String> = vals_set.iter().cloned().collect();
+                vals_vec.sort();
+                ret.push_str(&format!("<div class='space-y-1'>{}</div>", 
+                    vals_vec.iter().map(|v| 
+                        format!("<div class='bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
+                    ).collect::<Vec<_>>().join("")));
             }
+            ret.push_str("</td>");
+
+            // IPv4 addresses
+            ret.push_str("<td class='px-3 py-4 text-sm text-gray-500'>");
+            if let Some(vals_set) = &rec.inet {
+                let mut vals_vec: Vec<String> = vals_set.iter().cloned().collect();
+                vals_vec.sort();
+                ret.push_str(&format!("<div class='space-y-1'>{}</div>", 
+                    vals_vec.iter().map(|v| {
+                        if is_ip_restricted(v) {
+                            format!("<div class='bg-red-100 text-red-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
+                        } else {
+                            format!("<div class='bg-green-100 text-green-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
+                        }
+                    }).collect::<Vec<_>>().join("")));
+            }
+            ret.push_str("</td>");
+
+            // IPv6 addresses
+            ret.push_str("<td class='px-3 py-4 text-sm text-gray-500'>");
+            if let Some(vals_set) = &rec.inet6 {
+                let mut vals_vec: Vec<String> = vals_set.iter().cloned().collect();
+                vals_vec.sort();
+                ret.push_str(&format!("<div class='space-y-1'>{}</div>", 
+                    vals_vec.iter().map(|v| {
+                        if is_ip_restricted(v) {
+                            format!("<div class='bg-red-100 text-red-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
+                        } else {
+                            format!("<div class='bg-green-100 text-green-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
+                        }
+                    }).collect::<Vec<_>>().join("")));
+            }
+            ret.push_str("</td>");
             ret.push_str(&format!(
                 "<td class='px-3 py-4 text-sm text-gray-500 break-words'>{}</td>",
                 rec.remote_addr
