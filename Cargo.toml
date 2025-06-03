@@ -13,15 +13,15 @@ hyper = { version = "1", features = ["server", "http1"] } # Required by Axum 0.7
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde", "clock"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "local-time"] }
 regex = "1"
 thiserror = "2"
 ipnetwork = "0.21" # For more robust IP checks, though std::net::IpAddr is good
 axum-extra = "0.9"
 urlencoding = "2.1"
-tower-http = { version = "0.6.5", features = ["fs"] }
+tower-http = { version = "0.6.6", features = ["fs"] }
 
 [profile.release.package."*"]
 debug = false
