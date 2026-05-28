@@ -57,15 +57,20 @@ fn test_generate_bind_lines_for_record() {
         inet6: Some(inet6_set),
     };
     
-    let result = generate_bind_lines_for_record(&record, &dt);
-    
+    let result = generate_bind_lines_for_record(&record, &dt, false);
+
     // Should contain the public IPv4 (timestamp will vary based on local timezone)
     assert!(result.contains("testhost\t10M\tA\t46.36.37.83 ; @faddns"));
-    // Should contain the public IPv6 (timestamp will vary based on local timezone) 
+    // Should contain the public IPv6 (timestamp will vary based on local timezone)
     assert!(result.contains("testhost\t10M\tAAAA\t2a02:25b0:aaaa:5555::1111 ; @faddns"));
     // Should NOT contain private IPs
     assert!(!result.contains("192.168.1.1"));
     assert!(!result.contains("fe80::1"));
+
+    // With no_ipv4=true, IPv4 should be skipped entirely
+    let result_no_v4 = generate_bind_lines_for_record(&record, &dt, true);
+    assert!(!result_no_v4.contains("46.36.37.83"));
+    assert!(result_no_v4.contains("2a02:25b0:aaaa:5555::1111"));
 }
 
 #[test]

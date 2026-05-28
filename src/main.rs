@@ -39,6 +39,8 @@ struct Args {
     #[clap(long)]
     no_zone_sign: bool,
     #[clap(long)]
+    no_ipv4: bool,
+    #[clap(long)]
     debug: bool,
 }
 
@@ -214,6 +216,7 @@ async fn perform_dns_update_cycle(state: AppState) -> Result<(), String> {
         &datetimes_snapshot,
         current_changed_snapshot.clone(), // Pass a clone
         &do_pair_snapshot,
+        config.no_ipv4,
     )
     .await
     {
@@ -429,6 +432,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         out_fn: out_fn_path,
         no_zone_reload: args.no_zone_reload,
         no_zone_sign: args.no_zone_sign,
+        no_ipv4: args.no_ipv4,
     });
 
     let shared_state = AppState {

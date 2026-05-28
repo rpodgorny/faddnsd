@@ -42,6 +42,7 @@ pub struct AppConfig {
     pub out_fn: PathBuf, // Temporary file for zone updates
     pub no_zone_reload: bool,
     pub no_zone_sign: bool,
+    pub no_ipv4: bool,
 }
 
 pub fn dt_format(dt: &DateTime<Local>) -> String {
@@ -209,21 +210,23 @@ async fn update_serial_in_file(serial_fn: &Path, out_fn: &Path) -> Result<(), st
     Ok(())
 }
 
-pub fn generate_bind_lines_for_record(record: &Record, dt: &DateTime<Local>) -> String {
+pub fn generate_bind_lines_for_record(record: &Record, dt: &DateTime<Local>, no_ipv4: bool) -> String {
     let mut ret = String::new();
     let hostname = record.hostname.to_lowercase();
     let ttl = "10M"; // Hardcoded in Python
 
-    if let Some(inet_addrs) = &record.inet {
-        for addr in inet_addrs {
-            if is_ip_restricted(addr) {
-                continue;
+    if !no_ipv4 {
+        if let Some(inet_addrs) = &record.inet {
+            for addr in inet_addrs {
+                if is_ip_restricted(addr) {
+                    continue;
+                }
+                ret.push_str(&format!(
+                    "{hostname}\t{ttl}\tA\t{addr} ; @faddns {}\n",
+                    dt_format(dt)
+                ));
+                debug!("{hostname} IN A {addr}");
             }
-            ret.push_str(&format!(
-                "{hostname}\t{ttl}\tA\t{addr} ; @faddns {}\n",
-                dt_format(dt)
-            ));
-            debug!("{hostname} IN A {addr}");
         }
     }
     if let Some(inet6_addrs) = &record.inet6 {
@@ -248,6 +251,7 @@ pub async fn update_zone_file_content(
     datetimes_map: &HashMap<String, DateTime<Local>>,
     mut changed_hosts_snapshot: HashSet<String>, // Consumes and modifies this set
     do_pair_set: &HashSet<String>,
+    no_ipv4: bool,
 ) -> Result<HashSet<String>, std::io::Error> {
     // Returns remaining changed (unpaired)
     debug!(
@@ -303,7 +307,7 @@ pub async fn update_zone_file_content(
         if let Some(rec) = records_map.get(&host_in_zone) {
             if let Some(dt) = datetimes_map.get(&host_in_zone) {
                 info!("updating {}", host_in_zone);
-                let bind_lines = generate_bind_lines_for_record(rec, dt);
+                let bind_lines = generate_bind_lines_for_record(rec, dt, no_ipv4);
                 if !bind_lines.is_empty() {
                     temp_lines.push(bind_lines.trim_end().to_string());
                 } else {
@@ -329,7 +333,7 @@ pub async fn update_zone_file_content(
         if let Some(rec) = records_map.get(&host_to_add) {
             if let Some(dt) = datetimes_map.get(&host_to_add) {
                 info!("adding new host {host_to_add} to zone file");
-                let bind_lines = generate_bind_lines_for_record(rec, dt);
+                let bind_lines = generate_bind_lines_for_record(rec, dt, no_ipv4);
                 if !bind_lines.is_empty() {
                     temp_lines.push(bind_lines.trim_end().to_string());
                     written_hosts_this_pass.insert(host_to_add.clone());
