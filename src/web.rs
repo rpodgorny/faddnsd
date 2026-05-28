@@ -286,10 +286,12 @@ pub async fn listhosts_handler(State(state): State<AppState>) -> Html<String> {
             if let Some(vals_set) = &rec.inet {
                 let mut vals_vec: Vec<String> = vals_set.iter().cloned().collect();
                 vals_vec.sort();
-                ret.push_str(&format!("<div class='space-y-1'>{}</div>", 
+                ret.push_str(&format!("<div class='space-y-1'>{}</div>",
                     vals_vec.iter().map(|v| {
                         if is_ip_restricted(v) {
                             format!("<div class='bg-red-100 text-red-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
+                        } else if state.config.no_ipv4 {
+                            format!("<div class='bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
                         } else {
                             format!("<div class='bg-green-100 text-green-800 px-2 py-1 rounded text-sm break-all'>{}</div>", v)
                         }
