@@ -12,6 +12,9 @@ test:
 coverage:
   cargo llvm-cov nextest --text
 
+audit:
+  cargo audit
+
 tailwind:
   npx tailwindcss@3.4.17 -i ./static/input.css -o ./static/output.css --watch
 
